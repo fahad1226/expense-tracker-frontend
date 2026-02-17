@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "next/link";
 
 function Navbar() {
     return (
@@ -9,7 +9,9 @@ function Navbar() {
                     <div className="flex h-16 items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
-                                <span className="text-lg font-bold text-white">$</span>
+                                <span className="text-lg font-bold text-white">
+                                    $
+                                </span>
                             </div>
                             <span className="text-xl font-bold text-slate-900 dark:text-white">
                                 ExpenseTracker
@@ -33,7 +35,7 @@ function Navbar() {
                 </div>
             </nav>
         </>
-    )
+    );
 }
 
-export default Navbar
+export default Navbar;

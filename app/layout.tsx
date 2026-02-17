@@ -1,3 +1,4 @@
+import { Providers } from "@/components/providers";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
     title: "ExpenseTracker - Take Control of Your Finances",
-    description: "Track your expenses effortlessly. Beautiful, simple, and powerful expense management for modern life.",
+    description:
+        "Track your expenses effortlessly. Beautiful, simple, and powerful expense management for modern life.",
 };
 
 export default function RootLayout({
@@ -23,11 +25,12 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+                suppressHydrationWarning
             >
-                {children}
+                <Providers>{children}</Providers>
             </body>
         </html>
     );
