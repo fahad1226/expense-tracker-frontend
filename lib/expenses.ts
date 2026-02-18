@@ -97,6 +97,22 @@ export function getCategoryLabel(value: ExpenseCategory): string {
   return expenseCategories.find((c) => c.value === value)?.label ?? value;
 }
 
+const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
+  food: "bg-amber-100 text-amber-800",
+  transport: "bg-blue-100 text-blue-800",
+  shopping: "bg-violet-100 text-violet-800",
+  entertainment: "bg-pink-100 text-pink-800",
+  bills: "bg-slate-100 text-slate-800",
+  healthcare: "bg-emerald-100 text-emerald-800",
+  education: "bg-indigo-100 text-indigo-800",
+  travel: "bg-cyan-100 text-cyan-800",
+  other: "bg-gray-100 text-gray-800",
+};
+
+export function getCategoryColor(value: ExpenseCategory): string {
+  return CATEGORY_COLORS[value] ?? CATEGORY_COLORS.other;
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

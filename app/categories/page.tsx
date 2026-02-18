@@ -1,10 +1,10 @@
-import ExpenseList from "@/components/expenses/expense-list";
 import ApplicationSidebar from "@/components/sidebar/sidebar";
+import CategoryList from "@/components/categories/category-list";
 
-export default function ExpensesListPage() {
+export default function CategoriesPage() {
     return (
         <ApplicationSidebar>
-            <ExpenseList />
+            <CategoryList />
         </ApplicationSidebar>
     );
 }

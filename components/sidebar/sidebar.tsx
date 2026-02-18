@@ -41,7 +41,7 @@ const generalNav = [
         icon: ReceiptIcon,
         activeMatch: "/expenses",
     },
-    { name: "Categories", href: "/expenses/categories", icon: TagIcon },
+    { name: "Categories", href: "/categories", icon: TagIcon },
     { name: "Reports", href: "/reports", icon: BarChart3Icon },
 ];
 
