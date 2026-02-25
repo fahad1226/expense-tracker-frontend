@@ -7,9 +7,8 @@ import {
     formatDate,
     getCategoryColor,
     getCategoryLabel,
-    mockExpenses,
 } from "@/lib/expenses";
-import { cn } from "@/lib/utils";
+import { cn, show_data } from "@/lib/utils";
 import {
     ArrowUpDownIcon,
     Grid3X3Icon,
@@ -23,96 +22,25 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 type ViewMode = "list" | "grid";
 type SortKey = "date" | "amount" | "category" | "description";
 type SortDir = "asc" | "desc";
 type DateFilter = "all" | "7d" | "30d" | "90d";
 
-export default function ExpenseList() {
+export default function ExpenseList({ expenses }: { expenses: Expense[] }) {
     const searchParams = useSearchParams();
     const categoryFromUrl = searchParams.get("category");
     const [viewMode, setViewMode] = useState<ViewMode>("list");
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-    // useEffect(() => {
-    //     if (
-    //         categoryFromUrl &&
-    //         expenseCategories.some((c) => c.value === categoryFromUrl)
-    //     ) {
-    //         setCategoryFilter(categoryFromUrl);
-    //     }
-    // }, [categoryFromUrl]);
     const [dateFilter, setDateFilter] = useState<DateFilter>("all");
     const [sortKey, setSortKey] = useState<SortKey>("date");
     const [sortDir, setSortDir] = useState<SortDir>("desc");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-    const filteredAndSorted = useMemo(() => {
-        let result = [...mockExpenses];
-
-        if (search.trim()) {
-            const q = search.toLowerCase();
-            result = result.filter(
-                (e) =>
-                    e.description.toLowerCase().includes(q) ||
-                    getCategoryLabel(e.category).toLowerCase().includes(q),
-            );
-        }
-
-        if (categoryFilter !== "all") {
-            result = result.filter((e) => e.category === categoryFilter);
-        }
-
-        if (dateFilter !== "all") {
-            const now = new Date();
-            const cutoff = new Date(now);
-            cutoff.setHours(0, 0, 0, 0);
-            if (dateFilter === "7d") cutoff.setDate(cutoff.getDate() - 7);
-            else if (dateFilter === "30d")
-                cutoff.setDate(cutoff.getDate() - 30);
-            else if (dateFilter === "90d")
-                cutoff.setDate(cutoff.getDate() - 90);
-            const cutoffTime = cutoff.getTime();
-            result = result.filter(
-                (e) => new Date(e.date).getTime() >= cutoffTime,
-            );
-        }
-
-        result.sort((a, b) => {
-            let cmp = 0;
-            switch (sortKey) {
-                case "date":
-                    cmp =
-                        new Date(a.date).getTime() - new Date(b.date).getTime();
-                    break;
-                case "amount":
-                    cmp = a.amount - b.amount;
-                    break;
-                case "category":
-                    cmp = getCategoryLabel(a.category).localeCompare(
-                        getCategoryLabel(b.category),
-                    );
-                    break;
-                case "description":
-                    cmp = a.description.localeCompare(b.description);
-                    break;
-                default:
-                    cmp = 0;
-            }
-            return sortDir === "asc" ? cmp : -cmp;
-        });
-
-        return result;
-    }, [search, categoryFilter, dateFilter, sortKey, sortDir]);
-
-    const totalAmount = filteredAndSorted.reduce((s, e) => s + e.amount, 0);
-    const selectedAmount = filteredAndSorted
-        .filter((e) => selectedIds.has(e.id))
-        .reduce((s, e) => s + e.amount, 0);
 
     const toggleSelect = (id: string) => {
         setSelectedIds((prev) => {
@@ -121,14 +49,6 @@ export default function ExpenseList() {
             else next.add(id);
             return next;
         });
-    };
-
-    const toggleSelectAll = () => {
-        if (selectedIds.size === filteredAndSorted.length) {
-            setSelectedIds(new Set());
-        } else {
-            setSelectedIds(new Set(filteredAndSorted.map((e) => e.id)));
-        }
     };
 
     return (
@@ -140,9 +60,9 @@ export default function ExpenseList() {
                         Expenses
                     </h1>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {filteredAndSorted.length} expense
+                        {/* {filteredAndSorted.length} expense
                         {filteredAndSorted.length !== 1 ? "s" : ""} ·{" "}
-                        {formatCurrency(totalAmount)} total
+                        {formatCurrency(totalAmount)} total */}
                     </p>
                 </div>
                 <Link
@@ -159,7 +79,7 @@ export default function ExpenseList() {
                 <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-violet-200 bg-violet-50/50 px-5 py-3">
                     <span className="text-sm font-medium text-violet-800">
                         {selectedIds.size} selected ·{" "}
-                        {formatCurrency(selectedAmount)}
+                        {/* {formatCurrency(selectedAmount)} */}
                     </span>
                     <div className="flex gap-2">
                         <button
@@ -289,7 +209,7 @@ export default function ExpenseList() {
             </div>
 
             {/* Content */}
-            {filteredAndSorted.length === 0 ? (
+            {expenses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/30 py-20">
                     <div className="flex size-16 items-center justify-center rounded-2xl bg-gray-100">
                         <ReceiptIcon className="size-8 text-gray-400" />
@@ -323,10 +243,10 @@ export default function ExpenseList() {
                                             type="checkbox"
                                             checked={
                                                 selectedIds.size ===
-                                                    filteredAndSorted.length &&
-                                                filteredAndSorted.length > 0
+                                                    expenses.length &&
+                                                expenses.length > 0
                                             }
-                                            onChange={toggleSelectAll}
+                                            // onChange={toggleSelectAll}
                                             className="size-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
                                             aria-label="Select all"
                                         />
@@ -347,7 +267,7 @@ export default function ExpenseList() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredAndSorted.map((expense) => (
+                                {expenses.map((expense) => (
                                     <ExpenseListRow
                                         key={expense.id}
                                         expense={expense}
@@ -370,7 +290,7 @@ export default function ExpenseList() {
                 </div>
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {filteredAndSorted.map((expense) => (
+                    {expenses.map((expense) => (
                         <ExpenseGridCard
                             key={expense.id}
                             expense={expense}
@@ -420,6 +340,8 @@ function ExpenseListRow({
                     aria-label={`Select ${expense.description}`}
                 />
             </td>
+
+           
             <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-600 transition-colors group-hover:bg-violet-50 group-hover:text-violet-600">

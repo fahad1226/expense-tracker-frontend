@@ -6,7 +6,7 @@ import {
     formatCurrency,
     formatDate,
     getCategoryLabel,
-    mockExpenses,
+    toISODate,
 } from "@/lib/expenses";
 import { cn } from "@/lib/utils";
 import {
@@ -47,9 +47,67 @@ const CHART_COLORS = [
     "#64748b", // slate-500
 ];
 
+function generateMockExpenses(
+    expenseEntries: Omit<Expense, "date">[],
+): Expense[] {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const prevMonth = month === 0 ? 11 : month - 1;
+    const prevYear = month === 0 ? year - 1 : year;
+
+    const entries: Omit<Expense, "date">[] = expenseEntries;
+
+    // Current month: spread across 4 weeks (days 1, 5, 8, 12, 15, 18, 22, 25)
+    const currentMonthDates = [1, 5, 8, 12, 15, 18, 22, 25];
+    const currentMonthExpenses = entries.slice(0, 29).map((e, i) => ({
+        ...e,
+        date: toISODate(
+            new Date(
+                year,
+                month,
+                Math.min(currentMonthDates[Math.floor(i / 4)] ?? 1, 28),
+            ),
+        ),
+    }));
+
+    // Previous month: 3 expenses for trend comparison
+    const prevMonthExpenses: Expense[] = [
+        {
+            ...entries[0]!,
+            id: "30",
+            date: toISODate(new Date(prevYear, prevMonth, 15)),
+        },
+        {
+            ...entries[2]!,
+            id: "31",
+            date: toISODate(new Date(prevYear, prevMonth, 10)),
+        },
+        {
+            ...entries[1]!,
+            id: "32",
+            date: toISODate(new Date(prevYear, prevMonth, 8)),
+        },
+    ].map(({ id, amount, category, description, date }) => ({
+        id,
+        amount,
+        category,
+        description,
+        date,
+    }));
+
+    return [...currentMonthExpenses, ...prevMonthExpenses];
+}
+
+/** Parse YYYY-MM-DD as local date (avoids UTC timezone shift) */
+function parseLocalDate(dateStr: string): Date {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y!, m! - 1, d!);
+}
+
 function getMonthExpenses(expenses: Expense[], year: number, month: number) {
     return expenses.filter((e) => {
-        const d = new Date(e.date);
+        const d = parseLocalDate(e.date);
         return d.getFullYear() === year && d.getMonth() === month;
     });
 }
@@ -76,7 +134,7 @@ function getCategoryTotals(expenses: Expense[]) {
 function getWeeklyBreakdown(expenses: Expense[]) {
     const weeks: Record<string, Record<string, number>> = {};
     for (const e of expenses) {
-        const d = new Date(e.date);
+        const d = parseLocalDate(e.date);
         const weekStart = new Date(d);
         weekStart.setDate(d.getDate() - d.getDay());
         const key = weekStart.toISOString().slice(0, 10);
@@ -101,8 +159,11 @@ function getWeeklyBreakdown(expenses: Expense[]) {
         }));
 }
 
-export default function Dashboard() {
+export default function Dashboard({ expenses }: { expenses: Expense[] }) {
     const now = new Date();
+
+    const mockExpenses: Expense[] = generateMockExpenses(expenses);
+
     const monthExpenses = getCurrentMonthExpenses(mockExpenses);
     const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
     const prevYear =

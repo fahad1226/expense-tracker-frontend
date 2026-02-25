@@ -1,6 +1,6 @@
 "use client";
 
-import { setAuthToken } from "@/config/api";
+import { setAuthToken } from "@/lib/auth";
 import { useAuth } from "@/context/auth-context";
 import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
@@ -8,8 +8,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import { loginApi } from "@/config/api";
+import { loginApi } from "@/lib/auth";
 
 export function LoginForm() {
     const { setUserFromLogin } = useAuth();

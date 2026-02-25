@@ -3,19 +3,12 @@
 import {
     clearAuthToken,
     getMeApi,
-    hasAuthToken,
     loginApi,
     logoutApi,
     setAuthToken,
     type User,
-} from "@/config/api";
-import {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
-} from "react";
+} from "@/lib/auth";
+import { createContext, useCallback, useContext, useState } from "react";
 
 interface AuthState {
     user: User | null;
@@ -48,22 +41,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    useEffect(() => {
-        if (!hasAuthToken()) {
-            setIsLoading(false);
-            return;
-        }
-        refetchUser();
-    }, [refetchUser]);
+    // useEffect(() => {
+    //     if (!hasAuthToken()) {
+    //         setIsLoading(false);
+    //         return;
+    //     }
+    //     refetchUser();
+    // }, [refetchUser]);
 
-    const login = useCallback(
-        async (email: string, password: string) => {
-            const { token, user: userData } = await loginApi({ email, password });
-            setAuthToken(token);
-            setUser(userData);
-        },
-        []
-    );
+    const login = useCallback(async (email: string, password: string) => {
+        const { token, user: userData } = await loginApi({ email, password });
+        setAuthToken(token);
+        setUser(userData);
+    }, []);
 
     const logout = useCallback(async () => {
         await logoutApi();

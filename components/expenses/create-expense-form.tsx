@@ -1,11 +1,15 @@
 "use client";
 
-import { expenseCategories, type ExpenseCategory } from "@/lib/expenses";
+import { apiClient } from "@/config/api.client";
+import { type ExpenseCategory } from "@/lib/expenses";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { differenceInCalendarDays } from "date-fns";
 import {
     ArrowLeftIcon,
     CalendarIcon,
     CarIcon,
+    CheckCircleIcon,
     CircleDollarSignIcon,
     FilmIcon,
     GraduationCapIcon,
@@ -17,10 +21,8 @@ import {
     ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
-import { toast } from "sonner";
 
 const CATEGORY_ICONS: Record<
     ExpenseCategory,
@@ -37,37 +39,75 @@ const CATEGORY_ICONS: Record<
     other: CircleDollarSignIcon,
 };
 
-export default function CreateExpenseForm() {
-    const router = useRouter();
-    const [amount, setAmount] = useState("");
-    const [description, setDescription] = useState("");
-    const [category, setCategory] = useState<ExpenseCategory | null>(null);
-    const [date, setDate] = useState<Date>(() => new Date());
-    const [datePickerOpen, setDatePickerOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+type FormState = {
+    amount: string;
+    note: string;
+    category_id: number | null;
+    date: Date;
+};
 
-    const amountNum = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
-    const isValid = amountNum > 0 && description.trim() && category;
+type CategoryType = {
+    id: number;
+    name: string;
+    description: string;
+};
+
+export default function CreateExpenseForm({
+    categories,
+}: {
+    categories: CategoryType[];
+}) {
+    const [form, setForm] = useState<FormState>(() => ({
+        amount: "",
+        note: "",
+        category_id: 2,
+        date: new Date(),
+    }));
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+    const amountNum = parseFloat(form.amount.replace(/[^0-9.]/g, "")) || 0;
+    const isValid = amountNum > 0 && form.note.trim() && form.category_id;
+
+    const updateField = <K extends keyof FormState>(
+        field: K,
+        value: FormState[K],
+    ) => setForm((prev) => ({ ...prev, [field]: value }));
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const v = e.target.value;
-        if (v === "" || /^\d*\.?\d{0,2}$/.test(v)) setAmount(v);
+        if (v === "" || /^\d*\.?\d{0,2}$/.test(v)) updateField("amount", v);
     };
+
+    const {
+        mutate: createExpenseMutation,
+        isPending,
+        reset,
+        status,
+        isSuccess,
+    } = useMutation({
+        mutationFn: (expense: {
+            amount: number;
+            note: string;
+            category_id: number;
+            date: Date;
+        }) => apiClient().post("/expenses", expense),
+        onSuccess: (data) => {
+            console.log("data created", data);
+            // toast.success("Expense added successfully");
+            // router.push("/expenses/list");
+        },
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isValid || !category) return;
-        setIsSubmitting(true);
-        try {
-            // TODO: Replace with API call when backend is ready
-            await new Promise((r) => setTimeout(r, 600));
-            toast.success("Expense added successfully");
-            router.push("/expenses/list");
-        } catch {
-            toast.error("Something went wrong. Please try again.");
-        } finally {
-            setIsSubmitting(false);
-        }
+        if (!isValid || !form.category_id) return;
+
+        createExpenseMutation({
+            amount: amountNum,
+            note: form.note,
+            category_id: form.category_id,
+            date: form.date,
+        });
     };
 
     return (
@@ -112,7 +152,7 @@ export default function CreateExpenseForm() {
                                 type="text"
                                 inputMode="decimal"
                                 placeholder="0.00"
-                                value={amount}
+                                value={form.amount}
                                 onChange={handleAmountChange}
                                 autoFocus
                                 className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-4 pl-10 pr-4 text-2xl font-semibold text-gray-900 placeholder:text-gray-400 transition-colors focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20"
@@ -123,17 +163,19 @@ export default function CreateExpenseForm() {
                     {/* Description */}
                     <div className="space-y-2">
                         <label
-                            htmlFor="description"
+                            htmlFor="note"
                             className="text-sm font-semibold text-gray-700"
                         >
-                            Description
+                            Note
                         </label>
                         <input
-                            id="description"
+                            id="note"
                             type="text"
                             placeholder="e.g. Grocery shopping at Whole Foods"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
+                            value={form.note}
+                            onChange={(e) =>
+                                updateField("note", e.target.value)
+                            }
                             className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                         />
                     </div>
@@ -144,14 +186,16 @@ export default function CreateExpenseForm() {
                             Category
                         </label>
                         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                            {expenseCategories.map((c) => {
-                                const Icon = CATEGORY_ICONS[c.value];
-                                const isSelected = category === c.value;
+                            {categories?.map((c) => {
+                                // const Icon = CATEGORY_ICONS[c.id];
+                                const isSelected = form.category_id === c.id;
                                 return (
                                     <button
-                                        key={c.value}
+                                        key={c.id}
                                         type="button"
-                                        onClick={() => setCategory(c.value)}
+                                        onClick={() =>
+                                            updateField("category_id", c.id)
+                                        }
                                         className={cn(
                                             "flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 transition-all",
                                             isSelected
@@ -167,10 +211,10 @@ export default function CreateExpenseForm() {
                                                     : "bg-white",
                                             )}
                                         >
-                                            <Icon className="size-5" />
+                                            {/* <Icon className="size-5" /> */}
                                         </div>
                                         <span className="line-clamp-2 text-center text-xs font-medium leading-tight">
-                                            {c.label}
+                                            {c.name}
                                         </span>
                                     </button>
                                 );
@@ -186,7 +230,7 @@ export default function CreateExpenseForm() {
                         <div className="flex gap-2">
                             <button
                                 type="button"
-                                onClick={() => setDate(new Date())}
+                                onClick={() => updateField("date", new Date())}
                                 className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                             >
                                 Today
@@ -203,7 +247,9 @@ export default function CreateExpenseForm() {
                                     )}
                                 >
                                     <CalendarIcon className="size-4 text-gray-400" />
-                                    {date.toLocaleDateString("en-US", {
+                                    {(
+                                        form.date ?? new Date()
+                                    ).toLocaleDateString("en-US", {
                                         weekday: "short",
                                         month: "short",
                                         day: "numeric",
@@ -222,13 +268,26 @@ export default function CreateExpenseForm() {
                                         <div className="absolute left-0 top-full z-40 mt-2 rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
                                             <DayPicker
                                                 mode="single"
-                                                selected={date}
-                                                onSelect={(d) => {
-                                                    if (d) setDate(d);
+                                                selected={
+                                                    form.date ?? new Date()
+                                                }
+                                                onSelect={(selectedDate) => {
+                                                    if (selectedDate)
+                                                        updateField(
+                                                            "date",
+                                                            selectedDate,
+                                                        );
                                                     setDatePickerOpen(false);
                                                 }}
-                                                defaultMonth={date}
-                                                disabled={{ after: new Date() }}
+                                                defaultMonth={
+                                                    form.date ?? new Date()
+                                                }
+                                                disabled={(day) =>
+                                                    differenceInCalendarDays(
+                                                        day,
+                                                        new Date(),
+                                                    ) > 0
+                                                }
                                             />
                                         </div>
                                     </>
@@ -248,22 +307,26 @@ export default function CreateExpenseForm() {
                     </Link>
                     <button
                         type="submit"
-                        disabled={!isValid || isSubmitting}
+                        disabled={!isValid || isPending}
                         className={cn(
                             "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all",
-                            isValid && !isSubmitting
+                            isValid && !isPending
                                 ? "bg-violet-600 shadow-sm hover:bg-violet-700 hover:shadow-md"
                                 : "cursor-not-allowed bg-gray-300",
                         )}
                     >
-                        {isSubmitting ? (
+                        {isPending ? (
                             <>
                                 <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                 Adding...
                             </>
                         ) : (
                             <>
-                                <ReceiptIcon className="size-4" />
+                                {isSuccess ? (
+                                    <CheckCircleIcon className="size-4 text-white" />
+                                ) : (
+                                    <ReceiptIcon className="size-4" />
+                                )}
                                 Add expense
                             </>
                         )}
