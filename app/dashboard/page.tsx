@@ -7,14 +7,12 @@ export default async function DashboardPage() {
     const cookieStore = await cookies();
     const authToken = cookieStore.get(AUTH_TOKEN_KEY);
 
-    const { data } = await apiServer(authToken?.value).get("/expenses");
-
-    console.log("expensed data from server is", data);
+    const { data } = await apiServer(authToken?.value).get("/dashboard");
 
     return (
         <>
             <ApplicationSidebar>
-                <Dashboard expenses={data.data} />
+                <Dashboard data={data} />
             </ApplicationSidebar>
         </>
     );

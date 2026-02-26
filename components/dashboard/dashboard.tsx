@@ -34,6 +34,7 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
+import ApplicationCharts from "./charts";
 
 const CHART_COLORS = [
     "#6366f1", // indigo-500
@@ -159,10 +160,20 @@ function getWeeklyBreakdown(expenses: Expense[]) {
         }));
 }
 
-export default function Dashboard({ expenses }: { expenses: Expense[] }) {
+interface DashboardProps {
+    totalExpenses: number;
+    mostExpensiveCategory: {
+        totalSpent: number;
+        name: string;
+    };
+    totalCategories: number;
+    expenses: Expense[];
+}
+
+export default function Dashboard({ data }: { data: DashboardProps }) {
     const now = new Date();
 
-    const mockExpenses: Expense[] = generateMockExpenses(expenses);
+    const mockExpenses: Expense[] = generateMockExpenses(data.expenses);
 
     const monthExpenses = getCurrentMonthExpenses(mockExpenses);
     const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
@@ -225,6 +236,7 @@ export default function Dashboard({ expenses }: { expenses: Expense[] }) {
                         Overview of your spending
                     </p>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 shadow-sm">
                         <span>{monthLabel}</span>
@@ -251,7 +263,7 @@ export default function Dashboard({ expenses }: { expenses: Expense[] }) {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <SummaryCard
                     title="Total cost this month"
-                    value={formatCurrency(totalThisMonth)}
+                    value={formatCurrency(data.totalExpenses)}
                     icon={WalletIcon}
                     trend={
                         totalTrend !== null
@@ -265,17 +277,19 @@ export default function Dashboard({ expenses }: { expenses: Expense[] }) {
                 />
                 <SummaryCard
                     title="Most expensive category"
-                    value={mostExpensive ? mostExpensive.name : "—"}
+                    value={data.mostExpensiveCategory.name}
                     subValue={
                         mostExpensive
-                            ? formatCurrency(mostExpensive.value)
+                            ? formatCurrency(
+                                  data.mostExpensiveCategory.totalSpent,
+                              )
                             : undefined
                     }
                     icon={TrendingUpIcon}
                 />
                 <SummaryCard
                     title="Transactions"
-                    value={String(transactionCount)}
+                    value={formatCurrency(data.totalExpenses)}
                     subValue={
                         transactionCount > 0
                             ? `~${formatCurrency(avgDailySpend)}/day avg`
@@ -294,242 +308,9 @@ export default function Dashboard({ expenses }: { expenses: Expense[] }) {
             </div>
 
             {/* Charts */}
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Spending overview - Stacked bar */}
-                <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/50">
-                    <div className="flex flex-col gap-4 border-b border-gray-100 bg-gray-50/30 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 className="text-base font-semibold text-gray-900">
-                                Spending overview
-                            </h2>
-                            <p className="mt-0.5 text-sm text-gray-500">
-                                {formatCurrency(totalThisMonth)} total
-                                {totalTrend !== null && (
-                                    <span
-                                        className={cn(
-                                            "ml-2 font-medium",
-                                            totalTrend >= 0
-                                                ? "text-emerald-600"
-                                                : "text-red-600",
-                                        )}
-                                    >
-                                        {totalTrend >= 0 ? (
-                                            <ArrowUpIcon className="inline size-3.5" />
-                                        ) : (
-                                            <ArrowDownIcon className="inline size-3.5" />
-                                        )}{" "}
-                                        {Math.abs(totalTrend).toFixed(1)}%
-                                    </span>
-                                )}
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setChartPeriod("weekly")}
-                                className={cn(
-                                    "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                                    chartPeriod === "weekly"
-                                        ? "bg-violet-100 text-violet-700"
-                                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-700",
-                                )}
-                            >
-                                Weekly
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setChartPeriod("monthly")}
-                                className={cn(
-                                    "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                                    chartPeriod === "monthly"
-                                        ? "bg-violet-100 text-violet-700"
-                                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-700",
-                                )}
-                            >
-                                Monthly
-                            </button>
-                        </div>
-                    </div>
-                    <div className="p-6">
-                        {barData.length > 0 ? (
-                            <div className="h-72">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={barData}
-                                        margin={{
-                                            top: 16,
-                                            right: 16,
-                                            left: 0,
-                                            bottom: 0,
-                                        }}
-                                    >
-                                        <XAxis
-                                            dataKey="week"
-                                            tick={{
-                                                fontSize: 11,
-                                                fill: "#6b7280",
-                                            }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                        />
-                                        <YAxis
-                                            tick={{
-                                                fontSize: 11,
-                                                fill: "#6b7280",
-                                            }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tickFormatter={(v) =>
-                                                v >= 1000
-                                                    ? `$${v / 1000}k`
-                                                    : `$${v}`
-                                            }
-                                        />
-                                        <Tooltip
-                                            formatter={(value: number) =>
-                                                formatCurrency(value)
-                                            }
-                                            contentStyle={{
-                                                borderRadius: "10px",
-                                                border: "1px solid #e5e7eb",
-                                                boxShadow:
-                                                    "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                                padding: "12px 16px",
-                                            }}
-                                            labelStyle={{
-                                                fontWeight: 600,
-                                                color: "#111827",
-                                            }}
-                                        />
-                                        <Legend
-                                            wrapperStyle={{ paddingTop: 16 }}
-                                            formatter={(value) => (
-                                                <span className="text-xs font-medium text-gray-600">
-                                                    {value}
-                                                </span>
-                                            )}
-                                        />
-                                        {barCategories
-                                            .slice(0, 5)
-                                            .map((cat, i) => (
-                                                <Bar
-                                                    key={cat}
-                                                    dataKey={cat}
-                                                    stackId="a"
-                                                    fill={
-                                                        CHART_COLORS[
-                                                            i %
-                                                                CHART_COLORS.length
-                                                        ]
-                                                    }
-                                                    radius={[4, 4, 0, 0]}
-                                                />
-                                            ))}
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        ) : (
-                            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 text-sm text-gray-500">
-                                No spending data this month
-                            </div>
-                        )}
-                    </div>
-                </div>
 
-                {/* Category distribution - Donut */}
-                <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/50">
-                    <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/30 px-6 py-4">
-                        <h2 className="text-base font-semibold text-gray-900">
-                            Spending distribution
-                        </h2>
-                        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600">
-                            Monthly
-                            <ChevronDownIcon className="size-3.5" />
-                        </div>
-                    </div>
-                    <div className="p-6">
-                        {pieData.length > 0 ? (
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                                <div className="h-56 w-full sm:h-64 sm:w-1/2">
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
-                                    >
-                                        <PieChart>
-                                            <Pie
-                                                data={pieData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={52}
-                                                outerRadius={80}
-                                                paddingAngle={3}
-                                                dataKey="value"
-                                                nameKey="name"
-                                            >
-                                                {pieData.map((_, i) => (
-                                                    <Cell
-                                                        key={i}
-                                                        fill={
-                                                            CHART_COLORS[
-                                                                i %
-                                                                    CHART_COLORS.length
-                                                            ]
-                                                        }
-                                                        stroke="none"
-                                                    />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                formatter={(value: number) =>
-                                                    formatCurrency(value)
-                                                }
-                                                contentStyle={{
-                                                    borderRadius: "10px",
-                                                    border: "1px solid #e5e7eb",
-                                                    boxShadow:
-                                                        "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                                    padding: "12px 16px",
-                                                }}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div className="flex flex-1 flex-col gap-2 sm:gap-3">
-                                    {pieData.slice(0, 5).map((item, i) => (
-                                        <div
-                                            key={item.name}
-                                            className="flex items-center justify-between gap-2"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className="size-2.5 shrink-0 rounded-full"
-                                                    style={{
-                                                        backgroundColor:
-                                                            CHART_COLORS[
-                                                                i %
-                                                                    CHART_COLORS.length
-                                                            ],
-                                                    }}
-                                                />
-                                                <span className="text-sm font-medium text-gray-700">
-                                                    {item.name}
-                                                </span>
-                                            </div>
-                                            <span className="text-sm font-semibold text-gray-900">
-                                                {formatCurrency(item.value)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 text-sm text-gray-500">
-                                No expenses this month
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+            <ApplicationCharts expenses={data.expenses} />
+        
 
             {/* Expense list */}
             <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/50">
