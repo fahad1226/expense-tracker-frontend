@@ -4,7 +4,7 @@ import {
     formatCurrency,
     getCategoryLabel,
 } from "@/lib/expenses";
-import { cn } from "@/lib/utils";
+import { cn, show_data } from "@/lib/utils";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -35,7 +35,7 @@ const CHART_COLORS = [
 type ExpenseCategoryValue = (typeof expenseCategories)[number]["value"];
 
 /** Set to true to always use dummy data (useful when testing chart layout) */
-const USE_DUMMY_FOR_TESTING = true;
+const USE_DUMMY_FOR_TESTING = false;
 
 /**
  * Dummy expenses - expected structure for charts.
@@ -337,7 +337,7 @@ function normalizeBarData(
     });
 }
 
-function ApplicationCharts({ expenses = [] }: { expenses?: Expense[] }) {
+function ApplicationCharts({ expenses }: { expenses: Expense[] }) {
     const now = new Date();
     const [chartPeriod, setChartPeriod] = useState<"weekly" | "monthly">(
         "weekly",
@@ -346,7 +346,9 @@ function ApplicationCharts({ expenses = [] }: { expenses?: Expense[] }) {
     // Use dummy data when USE_DUMMY_FOR_TESTING, or when backend returns empty/undefined.
     // Match your backend response to the getDummyExpenses() structure above.
     const expensesToUse =
-        USE_DUMMY_FOR_TESTING || !Array.isArray(expenses) || expenses.length === 0
+        USE_DUMMY_FOR_TESTING ||
+        !Array.isArray(expenses) ||
+        expenses.length === 0
             ? getDummyExpenses()
             : expenses;
 
@@ -457,6 +459,9 @@ function ApplicationCharts({ expenses = [] }: { expenses?: Expense[] }) {
                             </button>
                         </div>
                     </div>
+
+                    <pre className="overflow-x-auto">{show_data(expenses)}</pre>
+
                     <div className="p-6">
                         {barData.length > 0 ? (
                             <div className="h-72">

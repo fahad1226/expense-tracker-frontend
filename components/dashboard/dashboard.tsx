@@ -1,5 +1,6 @@
 "use client";
 
+import { apiClient } from "@/config/api.client";
 import {
     Expense,
     expenseCategories,
@@ -8,7 +9,8 @@ import {
     getCategoryLabel,
     toISODate,
 } from "@/lib/expenses";
-import { cn } from "@/lib/utils";
+import { cn, formatDataPreview } from "@/lib/utils";
+import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -21,32 +23,41 @@ import {
     WalletIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import {
-    Bar,
-    BarChart,
-    Cell,
-    Legend,
-    Pie,
-    PieChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from "recharts";
+import { useCallback, useState } from "react";
 import ApplicationCharts from "./charts";
+import MonthPicker from "./monthly-filter";
 
-const CHART_COLORS = [
-    "#6366f1", // indigo-500
-    "#8b5cf6", // violet-500
-    "#06b6d4", // cyan-500
-    "#10b981", // emerald-500
-    "#f59e0b", // amber-500
-    "#ec4899", // pink-500
-    "#14b8a6", // teal-500
-    "#f97316", // orange-500
-    "#64748b", // slate-500
+const MONTH_NAMES = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
 ];
+
+/** Format YYYY-MM to display label e.g. "March 2025" */
+function formatMonthLabel(yearMonth: string): string {
+    const [y, m] = yearMonth.split("-").map(Number);
+    return new Date(y!, m! - 1, 1).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+    });
+}
+
+/** Get current month as YYYY-MM */
+function getCurrentYearMonth(): string {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+}
 
 function generateMockExpenses(
     expenseEntries: Omit<Expense, "date">[],
@@ -113,11 +124,6 @@ function getMonthExpenses(expenses: Expense[], year: number, month: number) {
     });
 }
 
-function getCurrentMonthExpenses(expenses: Expense[]) {
-    const now = new Date();
-    return getMonthExpenses(expenses, now.getFullYear(), now.getMonth());
-}
-
 function getCategoryTotals(expenses: Expense[]) {
     const totals: Record<string, number> = {};
     for (const e of expenses) {
@@ -132,36 +138,9 @@ function getCategoryTotals(expenses: Expense[]) {
     }));
 }
 
-function getWeeklyBreakdown(expenses: Expense[]) {
-    const weeks: Record<string, Record<string, number>> = {};
-    for (const e of expenses) {
-        const d = parseLocalDate(e.date);
-        const weekStart = new Date(d);
-        weekStart.setDate(d.getDate() - d.getDay());
-        const key = weekStart.toISOString().slice(0, 10);
-        if (!weeks[key]) weeks[key] = {};
-        weeks[key][e.category] = (weeks[key][e.category] ?? 0) + e.amount;
-    }
-    return Object.entries(weeks)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, cats]) => ({
-            week: new Date(date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-            }),
-            ...Object.fromEntries(
-                Object.entries(cats).map(([c, v]) => [
-                    getCategoryLabel(
-                        c as (typeof expenseCategories)[number]["value"],
-                    ),
-                    v,
-                ]),
-            ),
-        }));
-}
-
 interface DashboardProps {
     totalExpenses: number;
+    totalExpensesThisMonth: number;
     mostExpensiveCategory: {
         totalSpent: number;
         name: string;
@@ -172,17 +151,59 @@ interface DashboardProps {
 
 export default function Dashboard({ data }: { data: DashboardProps }) {
     const now = new Date();
+    const currentYearMonth = getCurrentYearMonth();
 
-    const mockExpenses: Expense[] = generateMockExpenses(data.expenses);
+    const [selectedMonth, setSelectedMonth] = useState(currentYearMonth);
+    const [dashboardData, setDashboardData] = useState<DashboardProps>(data);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const monthExpenses = getCurrentMonthExpenses(mockExpenses);
-    const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const fetchDashboardForMonth = useCallback(async (yearMonth: string) => {
+        setIsLoading(true);
+        try {
+            const { data: res } = await apiClient().get<DashboardProps>(
+                "/dashboard",
+                { params: { month: yearMonth } },
+            );
+            console.log("res", res);
+            setDashboardData(res);
+        } catch {
+            // Keep existing data on error
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const handleMonthSelect = useCallback(
+        (yearMonth: string) => {
+            console.log("yearMonth", yearMonth);
+            setSelectedMonth(yearMonth);
+            if (yearMonth !== currentYearMonth) {
+                fetchDashboardForMonth(yearMonth);
+            } else {
+                setDashboardData(data);
+            }
+        },
+        [currentYearMonth, data, fetchDashboardForMonth],
+    );
+
+    const mockExpenses: Expense[] = generateMockExpenses(
+        dashboardData.expenses,
+    );
+
+    const [selYear, selMonth] = selectedMonth.split("-").map(Number);
+    const selMonth0 = (selMonth ?? 1) - 1;
+    const monthExpenses = getMonthExpenses(
+        mockExpenses,
+        selYear ?? now.getFullYear(),
+        selMonth0,
+    );
+    const prevMonth0 = selMonth0 === 0 ? 11 : selMonth0 - 1;
     const prevYear =
-        now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+        selMonth0 === 0 ? (selYear ?? now.getFullYear()) - 1 : (selYear ?? 0);
     const prevMonthExpenses = getMonthExpenses(
         mockExpenses,
         prevYear,
-        prevMonth,
+        prevMonth0,
     );
 
     const totalThisMonth = monthExpenses.reduce((s, e) => s + e.amount, 0);
@@ -212,21 +233,10 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
               Math.max(1, new Set(monthExpenses.map((e) => e.date)).size)
             : 0;
 
-    const pieData = categoryTotals;
-    const barData = getWeeklyBreakdown(monthExpenses);
-    const barCategories = [...new Set(categoryTotals.map((c) => c.name))];
-
-    const [chartPeriod, setChartPeriod] = useState<"weekly" | "monthly">(
-        "weekly",
-    );
-    const monthLabel = now.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-    });
+    const monthLabel = formatMonthLabel(selectedMonth);
 
     return (
         <div className="space-y-8">
-            {/* Header with date range & actions */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">
@@ -238,10 +248,30 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 shadow-sm">
-                        <span>{monthLabel}</span>
-                        <ChevronDownIcon className="size-4 text-gray-400" />
-                    </div>
+                    <Popover className="relative">
+                        <PopoverButton
+                            disabled={isLoading}
+                            className="flex min-w-[140px] items-center justify-between gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-70"
+                        >
+                            <span>{monthLabel}</span>
+                            <ChevronDownIcon className="size-4 shrink-0 text-gray-400" />
+                        </PopoverButton>
+                        <PopoverPanel
+                            anchor="bottom start"
+                            className="z-50 mt-2 rounded-2xl border border-gray-200 bg-white p-4 shadow-xl"
+                        >
+                            {({ close }) => (
+                                <MonthPicker
+                                    key={selectedMonth}
+                                    selectedMonth={selectedMonth}
+                                    onSelect={(ym) => {
+                                        handleMonthSelect(ym);
+                                        close();
+                                    }}
+                                />
+                            )}
+                        </PopoverPanel>
+                    </Popover>
                     <button
                         type="button"
                         className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
@@ -263,7 +293,7 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <SummaryCard
                     title="Total cost this month"
-                    value={formatCurrency(data.totalExpenses)}
+                    value={formatCurrency(dashboardData.totalExpensesThisMonth)}
                     icon={WalletIcon}
                     trend={
                         totalTrend !== null
@@ -277,11 +307,12 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                 />
                 <SummaryCard
                     title="Most expensive category"
-                    value={data.mostExpensiveCategory.name}
+                    value={dashboardData.mostExpensiveCategory.name}
                     subValue={
                         mostExpensive
                             ? formatCurrency(
-                                  data.mostExpensiveCategory.totalSpent,
+                                  dashboardData.mostExpensiveCategory
+                                      .totalSpent,
                               )
                             : undefined
                     }
@@ -289,7 +320,7 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                 />
                 <SummaryCard
                     title="Transactions"
-                    value={formatCurrency(data.totalExpenses)}
+                    value={formatCurrency(dashboardData.totalExpenses)}
                     subValue={
                         transactionCount > 0
                             ? `~${formatCurrency(avgDailySpend)}/day avg`
@@ -307,10 +338,10 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                 />
             </div>
 
-            {/* Charts */}
+            {formatDataPreview(dashboardData)}
 
-            <ApplicationCharts expenses={data.expenses} />
-        
+            {/* Charts */}
+            <ApplicationCharts expenses={dashboardData.expenses} />
 
             {/* Expense list */}
             <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/50">
@@ -352,13 +383,13 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {monthExpenses
+                            {dashboardData.expenses
                                 .sort(
                                     (a, b) =>
                                         new Date(b.date).getTime() -
                                         new Date(a.date).getTime(),
                                 )
-                                .slice(0, 8)
+
                                 .map((expense) => (
                                     <tr
                                         key={expense.id}
@@ -399,7 +430,7 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                         </tbody>
                     </table>
                 </div>
-                {monthExpenses.length === 0 && (
+                {dashboardData.expenses.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="flex size-14 items-center justify-center rounded-2xl bg-gray-100">
                             <ReceiptIcon className="size-7 text-gray-400" />
