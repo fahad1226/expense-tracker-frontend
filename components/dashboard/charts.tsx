@@ -4,7 +4,7 @@ import {
     formatCurrency,
     getCategoryLabel,
 } from "@/lib/expenses";
-import { cn, show_data } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -221,14 +221,6 @@ function getMonthExpenses(
 }
 
 /**
- * Returns expenses for the current calendar month.
- */
-function getCurrentMonthExpenses(expenses: Expense[]): Expense[] {
-    const now = new Date();
-    return getMonthExpenses(expenses, now.getFullYear(), now.getMonth());
-}
-
-/**
  * Aggregates expenses by category into Recharts-compatible format.
  * Returns [{ name: "Food & Dining", value: 125.5, category: "food" }, ...]
  * sorted by value descending for consistent legend/chart ordering.
@@ -337,32 +329,34 @@ function normalizeBarData(
     });
 }
 
-function ApplicationCharts({ expenses }: { expenses: Expense[] }) {
-    const now = new Date();
+function ApplicationCharts({
+    expenses,
+    selectedMonth,
+}: {
+    expenses: Expense[];
+    /** YYYY-MM — must match dashboard month filter */
+    selectedMonth: string;
+}) {
     const [chartPeriod, setChartPeriod] = useState<"weekly" | "monthly">(
         "weekly",
     );
 
-    // Use dummy data when USE_DUMMY_FOR_TESTING, or when backend returns empty/undefined.
-    // Match your backend response to the getDummyExpenses() structure above.
-    const expensesToUse =
-        USE_DUMMY_FOR_TESTING ||
-        !Array.isArray(expenses) ||
-        expenses.length === 0
-            ? getDummyExpenses()
-            : expenses;
+    const expensesToUse = expenses;
+
+    const [selYear, selMonth1] = selectedMonth.split("-").map(Number);
+    const selMonth0 = (selMonth1 ?? 1) - 1;
+    const year = selYear ?? new Date().getFullYear();
 
     const monthExpenses = useMemo(
-        () => getCurrentMonthExpenses(expensesToUse),
-        [expensesToUse],
+        () => getMonthExpenses(expensesToUse, year, selMonth0),
+        [expensesToUse, year, selMonth0],
     );
 
-    const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    const prevYear =
-        now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const prevMonth0 = selMonth0 === 0 ? 11 : selMonth0 - 1;
+    const prevYear = selMonth0 === 0 ? year - 1 : year;
     const prevMonthExpenses = useMemo(
-        () => getMonthExpenses(expensesToUse, prevYear, prevMonth),
-        [expensesToUse, prevYear, prevMonth],
+        () => getMonthExpenses(expensesToUse, prevYear, prevMonth0),
+        [expensesToUse, prevYear, prevMonth0],
     );
 
     const totalThisMonth = monthExpenses.reduce((s, e) => s + e.amount, 0);
@@ -459,8 +453,6 @@ function ApplicationCharts({ expenses }: { expenses: Expense[] }) {
                             </button>
                         </div>
                     </div>
-
-                    <pre className="overflow-x-auto">{show_data(expenses)}</pre>
 
                     <div className="p-6">
                         {barData.length > 0 ? (

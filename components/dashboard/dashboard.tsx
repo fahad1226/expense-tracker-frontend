@@ -9,7 +9,7 @@ import {
     getCategoryLabel,
     toISODate,
 } from "@/lib/expenses";
-import { cn, formatDataPreview } from "@/lib/utils";
+import { cn, show_data } from "@/lib/utils";
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import {
     ArrowDownIcon,
@@ -247,6 +247,8 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                     </p>
                 </div>
 
+             
+
                 <div className="flex flex-wrap items-center gap-2">
                     <Popover className="relative">
                         <PopoverButton
@@ -307,7 +309,7 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                 />
                 <SummaryCard
                     title="Most expensive category"
-                    value={dashboardData.mostExpensiveCategory.name}
+                    value={dashboardData.mostExpensiveCategory?.name ?? "n/a"}
                     subValue={
                         mostExpensive
                             ? formatCurrency(
@@ -338,10 +340,11 @@ export default function Dashboard({ data }: { data: DashboardProps }) {
                 />
             </div>
 
-            {formatDataPreview(dashboardData)}
-
             {/* Charts */}
-            <ApplicationCharts expenses={dashboardData.expenses} />
+            <ApplicationCharts
+                expenses={dashboardData.expenses}
+                selectedMonth={selectedMonth}
+            />
 
             {/* Expense list */}
             <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/50">

@@ -8,7 +8,7 @@ function Navbar() {
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="flex h-16 items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg">
                                 <span className="text-lg font-bold text-white">
                                     $
                                 </span>
@@ -26,7 +26,7 @@ function Navbar() {
                             </Link>
                             <Link
                                 href="/signup"
-                                className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105"
+                                className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105"
                             >
                                 Get Started
                             </Link>

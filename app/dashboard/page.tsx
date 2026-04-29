@@ -35,8 +35,7 @@ export default async function DashboardPage() {
     return (
         <>
             <ApplicationSidebar>
-                {data.expenses.length > 0 && <Dashboard data={data} />}
-                {data.expenses.length === 0 && <div>No expenses</div>}
+                <Dashboard data={data} />
             </ApplicationSidebar>
         </>
     );

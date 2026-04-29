@@ -1,43 +1,20 @@
 "use client";
 
 import { apiClient } from "@/config/api.client";
-import { type ExpenseCategory } from "@/lib/expenses";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { differenceInCalendarDays } from "date-fns";
 import {
     ArrowLeftIcon,
     CalendarIcon,
-    CarIcon,
     CheckCircleIcon,
-    CircleDollarSignIcon,
-    FilmIcon,
-    GraduationCapIcon,
-    HeartPulseIcon,
-    PlaneIcon,
     ReceiptIcon,
-    ShoppingBagIcon,
-    UtensilsCrossedIcon,
-    ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
-
-const CATEGORY_ICONS: Record<
-    ExpenseCategory,
-    React.ComponentType<{ className?: string }>
-> = {
-    food: UtensilsCrossedIcon,
-    transport: CarIcon,
-    shopping: ShoppingBagIcon,
-    entertainment: FilmIcon,
-    bills: ZapIcon,
-    healthcare: HeartPulseIcon,
-    education: GraduationCapIcon,
-    travel: PlaneIcon,
-    other: CircleDollarSignIcon,
-};
+import { toast } from "sonner";
 
 type FormState = {
     amount: string;
@@ -57,6 +34,7 @@ export default function CreateExpenseForm({
 }: {
     categories: CategoryType[];
 }) {
+    const router = useRouter();
     const [form, setForm] = useState<FormState>(() => ({
         amount: "",
         note: "",
@@ -93,8 +71,8 @@ export default function CreateExpenseForm({
         }) => apiClient().post("/expenses", expense),
         onSuccess: (data) => {
             console.log("data created", data);
-            // toast.success("Expense added successfully");
-            // router.push("/expenses/list");
+            toast.success("Expense added successfully");
+            router.push("/expenses/list");
         },
     });
 

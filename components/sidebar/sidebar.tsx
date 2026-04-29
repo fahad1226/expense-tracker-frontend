@@ -11,16 +11,17 @@ import {
     TransitionChild,
 } from "@headlessui/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import apiClient from "@/config/api.client";
+import { clearAuthToken } from "@/lib/auth";
 import clsx from "clsx";
 import {
     ArrowLeftIcon,
     BarChart3Icon,
     BellIcon,
     ChevronDownIcon,
-    ChevronRightIcon,
     HelpCircleIcon,
     LayoutDashboardIcon,
     MenuIcon,
@@ -29,9 +30,9 @@ import {
     SearchIcon,
     SettingsIcon,
     TagIcon,
-    WalletIcon,
     XIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const generalNav = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
@@ -129,12 +130,25 @@ export default function ApplicationSidebar({
 }: {
     children: React.ReactNode;
 }) {
+    const router = useRouter();
     const pathname = usePathname();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [selectedTeam] = useState(teams[0]);
 
     const sidebarWidth = sidebarCollapsed ? "lg:w-20" : "lg:w-64";
+
+    const handleLogout = async () => {
+        try {
+            const response = await apiClient.post("/auth/logout");
+            if (response.status === 200) {
+                clearAuthToken();
+                router.push("/login");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to logout");
+        }
+    };
 
     return (
         <>
@@ -200,25 +214,6 @@ export default function ApplicationSidebar({
                                         title="Support"
                                         items={supportNav}
                                     />
-                                    <div className="mt-auto space-y-4 pt-6">
-                                        <div className="rounded-lg border border-gray-200 bg-white p-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex size-8 items-center justify-center rounded-md bg-teal-100 text-teal-600">
-                                                    <WalletIcon className="size-4" />
-                                                </div>
-                                                <span className="flex-1 text-sm font-medium text-gray-900">
-                                                    {selectedTeam.name}
-                                                </span>
-                                                <ChevronRightIcon className="size-4 text-gray-400" />
-                                            </div>
-                                        </div>
-                                        <button className="w-full rounded-lg border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                            Upgrade Plan
-                                        </button>
-                                        <p className="text-center text-xs text-gray-400">
-                                            ©2025 ExpenseTracker
-                                        </p>
-                                    </div>
                                 </nav>
                             </div>
                         </DialogPanel>
@@ -308,31 +303,6 @@ export default function ApplicationSidebar({
                                     })}
                                 </div>
                             )}
-
-                            {/* Bottom section */}
-                            <div className="mt-auto space-y-4 pt-6">
-                                {!sidebarCollapsed && (
-                                    <>
-                                        <div className="rounded-lg border border-gray-200 bg-white p-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-teal-100 text-teal-600">
-                                                    <WalletIcon className="size-4" />
-                                                </div>
-                                                <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">
-                                                    {selectedTeam.name}
-                                                </span>
-                                                <ChevronDownIcon className="size-4 shrink-0 text-gray-400" />
-                                            </div>
-                                        </div>
-                                        <button className="w-full rounded-lg border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                            Upgrade Plan
-                                        </button>
-                                        <p className="text-center text-xs text-gray-400">
-                                            ©2025 ExpenseTracker
-                                        </p>
-                                    </>
-                                )}
-                            </div>
                         </nav>
                     </div>
                 </div>
@@ -430,16 +400,24 @@ export default function ApplicationSidebar({
                                         transition
                                         className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-lg bg-white py-2 shadow-lg ring-1 ring-gray-200 transition data-closed:scale-95 data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
                                     >
-                                        {userNavigation.map((item) => (
-                                            <MenuItem key={item.name}>
-                                                <a
-                                                    href={item.href}
-                                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 data-focus:bg-gray-50 data-focus:outline-none"
-                                                >
-                                                    {item.name}
-                                                </a>
-                                            </MenuItem>
-                                        ))}
+                                        <MenuItem>
+                                            <Link
+                                                href={"/profile"}
+                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 data-focus:bg-gray-50 data-focus:outline-none"
+                                            >
+                                                Your profile
+                                            </Link>
+                                        </MenuItem>
+
+                                        <MenuItem>
+                                            <button
+                                                type="button"
+                                                onClick={handleLogout}
+                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 data-focus:bg-gray-50 data-focus:outline-none"
+                                            >
+                                                Sign out
+                                            </button>
+                                        </MenuItem>
                                     </MenuItems>
                                 </Menu>
                             </div>

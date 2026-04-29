@@ -158,3 +158,24 @@ body {
 .rdp-month_caption {
     margin-bottom: 0.5rem;
 }
+
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-shimmer {
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+        animation: none;
+        background: rgb(229 231 235) !important; /* gray-200 */
+    }
+}
