@@ -261,10 +261,7 @@ function CategoryGridCard({ category }: { category: CategoryStats }) {
         >
             <div className="flex items-start justify-between p-5">
                 <div className="flex size-12 items-center justify-center rounded-xl text-gray-600 transition-transform group-hover:scale-105">
-                    <CategoryGlyph
-                        iconId={category.icon}
-                        className="size-6"
-                    />
+                    <CategoryGlyph iconId={category.icon} className="size-6" />
                 </div>
                 <ChevronRightIcon className="size-4 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100" />
             </div>

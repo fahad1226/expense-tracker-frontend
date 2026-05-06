@@ -155,16 +155,15 @@ export default function ExpenseList({ initialPage }: ExpenseListProps) {
         },
         getNextPageParam: (lastPage) => {
             const meta = lastPage?.meta;
-            if (
-                meta == null ||
-                meta.current_page == null ||
-                meta.last_page == null
-            ) {
+            if (meta == null) {
                 return undefined;
             }
-            return meta.current_page < meta.last_page
-                ? meta.current_page + 1
-                : undefined;
+            const current = Number(meta.current_page);
+            const last = Number(meta.last_page);
+            if (!Number.isFinite(current) || !Number.isFinite(last)) {
+                return undefined;
+            }
+            return current < last ? current + 1 : undefined;
         },
     });
 
@@ -549,7 +548,8 @@ export default function ExpenseList({ initialPage }: ExpenseListProps) {
                 </div>
             )}
 
-            {!showEmpty && !isInitialLoading && hasNextPage && (
+            {/* Show even when client-side filters hide every loaded row, so users can fetch more pages (search/category). */}
+            {!isError && !isInitialLoading && hasNextPage && (
                 <div className="flex justify-center py-6">
                     <button
                         type="button"

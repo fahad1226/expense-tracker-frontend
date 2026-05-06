@@ -2,15 +2,16 @@
 
 import { apiClient } from "@/config/api.client";
 import {
+    CATEGORY_ICON_INITIAL_COUNT,
     CATEGORY_ICON_OPTIONS,
     DEFAULT_CATEGORY_ICON_ID,
 } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { useMutation } from "@tanstack/react-query";
-import { XIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function CategoryModal({
@@ -26,6 +27,24 @@ export default function CategoryModal({
     const [addName, setAddName] = useState("");
     const [addDescription, setAddDescription] = useState("");
     const [addIconId, setAddIconId] = useState(DEFAULT_CATEGORY_ICON_ID);
+    const [showAllIcons, setShowAllIcons] = useState(false);
+
+    const extraIconCount = Math.max(
+        0,
+        CATEGORY_ICON_OPTIONS.length - CATEGORY_ICON_INITIAL_COUNT,
+    );
+    const visibleIconOptions = useMemo(
+        () =>
+            showAllIcons
+                ? CATEGORY_ICON_OPTIONS
+                : CATEGORY_ICON_OPTIONS.slice(0, CATEGORY_ICON_INITIAL_COUNT),
+        [showAllIcons],
+    );
+
+    function handleClose() {
+        setShowAllIcons(false);
+        onClose();
+    }
 
     const createCategoryMutation = useMutation({
         mutationFn: (payload: {
@@ -35,10 +54,10 @@ export default function CategoryModal({
         }) => apiClient().post("/categories", payload),
         onSuccess: () => {
             toast.success("Category added successfully");
-            onClose();
             setAddName("");
             setAddDescription("");
             setAddIconId(DEFAULT_CATEGORY_ICON_ID);
+            handleClose();
             router.refresh();
             onSavedSuccessfully();
         },
@@ -53,9 +72,7 @@ export default function CategoryModal({
         <>
             <Dialog
                 open={openModal}
-                onClose={() => {
-                    onClose();
-                }}
+                onClose={handleClose}
                 className="relative z-50"
             >
                 <DialogBackdrop
@@ -73,7 +90,7 @@ export default function CategoryModal({
                             </h2>
                             <button
                                 type="button"
-                                onClick={() => onClose()}
+                                onClick={handleClose}
                                 className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                                 aria-label="Close"
                             >
@@ -135,7 +152,7 @@ export default function CategoryModal({
                                     Icon
                                 </label>
                                 <div className="grid grid-cols-5 gap-2">
-                                    {CATEGORY_ICON_OPTIONS.map(
+                                    {visibleIconOptions.map(
                                         ({ id, Icon, label }) => {
                                             const isSelected = addIconId === id;
                                             return (
@@ -159,11 +176,35 @@ export default function CategoryModal({
                                         },
                                     )}
                                 </div>
+                                {extraIconCount > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowAllIcons((v) => !v)
+                                        }
+                                        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200/90 bg-gray-50/80 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-violet-200 hover:bg-violet-50/60 hover:text-violet-800"
+                                    >
+                                        {showAllIcons ? (
+                                            <>
+                                                <ChevronUpIcon className="size-4" />
+                                                Show fewer icons
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ChevronDownIcon className="size-4" />
+                                                Show {extraIconCount} more icon
+                                                {extraIconCount !== 1
+                                                    ? "s"
+                                                    : ""}
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                             <div className="flex gap-3 border-t border-gray-100 pt-5">
                                 <button
                                     type="button"
-                                    onClick={() => onClose()}
+                                    onClick={handleClose}
                                     className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                                 >
                                     Cancel
