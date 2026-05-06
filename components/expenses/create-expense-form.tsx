@@ -1,6 +1,7 @@
 "use client";
 
 import { apiClient } from "@/config/api.client";
+import { CategoryGlyph } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { differenceInCalendarDays } from "date-fns";
@@ -26,7 +27,8 @@ type FormState = {
 type CategoryType = {
     id: number;
     name: string;
-    description: string;
+    description: string | null;
+    icon: string | null;
 };
 
 export default function CreateExpenseForm({
@@ -38,7 +40,7 @@ export default function CreateExpenseForm({
     const [form, setForm] = useState<FormState>(() => ({
         amount: "",
         note: "",
-        category_id: 2,
+        category_id: categories[0]?.id ?? null,
         date: new Date(),
     }));
     const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -59,8 +61,6 @@ export default function CreateExpenseForm({
     const {
         mutate: createExpenseMutation,
         isPending,
-        reset,
-        status,
         isSuccess,
     } = useMutation({
         mutationFn: (expense: {
@@ -103,7 +103,14 @@ export default function CreateExpenseForm({
                     Add expense
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                    Record a new expense to track your spending
+                    Record a new expense to track your spending.{" "}
+                    <Link
+                        href="/recurring/new"
+                        className="font-medium text-violet-600 hover:text-violet-700"
+                    >
+                        Set up a recurring charge
+                    </Link>{" "}
+                    instead
                 </p>
             </div>
 
@@ -185,11 +192,14 @@ export default function CreateExpenseForm({
                                             className={cn(
                                                 "flex size-10 items-center justify-center rounded-lg",
                                                 isSelected
-                                                    ? "bg-violet-100"
-                                                    : "bg-white",
+                                                    ? "bg-violet-100 text-violet-700"
+                                                    : "bg-white text-gray-600",
                                             )}
                                         >
-                                            {/* <Icon className="size-5" /> */}
+                                            <CategoryGlyph
+                                                iconId={c.icon}
+                                                className="size-5"
+                                            />
                                         </div>
                                         <span className="line-clamp-2 text-center text-xs font-medium leading-tight">
                                             {c.name}

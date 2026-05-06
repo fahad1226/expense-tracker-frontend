@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/currency";
+
 export const expenseCategories = [
     { id: 1, value: "food", label: "Food & Dining" },
     { id: 2, value: "transport", label: "Transportation" },
@@ -15,12 +17,36 @@ export type ExpenseCategory = (typeof expenseCategories)[number]["value"];
 export interface Expense {
     id: string;
     amount: number;
-    category: ExpenseCategory;
+    category: ExpenseCategory | string;
+    /** Lucide icon id from `lib/category-icons` when expense comes from the API */
+    category_icon?: string | null;
     date: string;
     description: string;
 }
 
-/** Helper to format YYYY-MM-DD from a Date */
+export interface PaginatedExpensesResponse {
+    data: Expense[];
+    links: {
+        first: string | null;
+        last: string | null;
+        prev: string | null;
+        next: string | null;
+    };
+    meta: {
+        current_page: number;
+        from: number | null;
+        last_page: number;
+        links: Array<{
+            url: string | null;
+            label: string;
+            active: boolean;
+        }>;
+        path: string;
+        per_page: number;
+        to: number | null;
+        total: number;
+    };
+}
 export function toISODate(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -90,8 +116,12 @@ function generateMockExpenses(): Expense[] {
 
 export const mockExpenses: Expense[] = generateMockExpenses();
 
-export function getCategoryLabel(value: ExpenseCategory): string {
-    return expenseCategories.find((c) => c.value === value)?.label ?? value;
+export function getCategoryLabel(value: ExpenseCategory | string): string {
+    const normalized =
+        typeof value === "string" ? value.toLowerCase().trim() : value;
+    return (
+        expenseCategories.find((c) => c.value === normalized)?.label ?? value
+    );
 }
 
 const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
@@ -106,15 +136,17 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
     other: "bg-gray-100 text-gray-800",
 };
 
-export function getCategoryColor(value: ExpenseCategory): string {
-    return CATEGORY_COLORS[value] ?? CATEGORY_COLORS.other;
+export function getCategoryColor(value: ExpenseCategory | string): string {
+    const key =
+        typeof value === "string" ? value.toLowerCase().trim() : value;
+    if (key in CATEGORY_COLORS) {
+        return CATEGORY_COLORS[key as ExpenseCategory];
+    }
+    return CATEGORY_COLORS.other;
 }
 
 export function formatCurrency(amount: number): string {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-    }).format(amount);
+    return formatMoney(amount);
 }
 
 export function formatDate(dateStr: string): string {

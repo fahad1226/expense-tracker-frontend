@@ -14,7 +14,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import apiClient from "@/config/api.client";
+import { apiClient } from "@/config/api.client";
 import { clearAuthToken } from "@/lib/auth";
 import clsx from "clsx";
 import {
@@ -27,6 +27,7 @@ import {
     MenuIcon,
     PiggyBankIcon,
     ReceiptIcon,
+    RepeatIcon,
     SearchIcon,
     SettingsIcon,
     TagIcon,
@@ -41,6 +42,12 @@ const generalNav = [
         href: "/expenses/list",
         icon: ReceiptIcon,
         activeMatch: "/expenses",
+    },
+    {
+        name: "Recurring",
+        href: "/recurring",
+        icon: RepeatIcon,
+        activeMatch: "/recurring",
     },
     { name: "Categories", href: "/categories", icon: TagIcon },
     { name: "Reports", href: "/reports", icon: BarChart3Icon },
@@ -139,7 +146,7 @@ export default function ApplicationSidebar({
 
     const handleLogout = async () => {
         try {
-            const response = await apiClient.post("/auth/logout");
+            const response = await apiClient().post("/auth/logout");
             if (response.status === 200) {
                 clearAuthToken();
                 router.push("/login");

@@ -2,13 +2,15 @@
 
 import {
     clearAuthToken,
+    getAuthToken,
     getMeApi,
     loginApi,
     logoutApi,
     setAuthToken,
     type User,
 } from "@/lib/auth";
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import axios from "axios";
 
 interface AuthState {
     user: User | null;
@@ -33,21 +35,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const userData = await getMeApi();
             setUser(userData);
-        } catch {
+        } catch (err) {
             setUser(null);
-            clearAuthToken();
+            if (axios.isAxiosError(err) && err.response?.status === 401) {
+                clearAuthToken();
+            }
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    // useEffect(() => {
-    //     if (!hasAuthToken()) {
-    //         setIsLoading(false);
-    //         return;
-    //     }
-    //     refetchUser();
-    // }, [refetchUser]);
+    useEffect(() => {
+        if (!getAuthToken()) {
+            setIsLoading(false);
+            return;
+        }
+        void refetchUser();
+    }, [refetchUser]);
 
     const login = useCallback(async (email: string, password: string) => {
         const { token, user: userData } = await loginApi({ email, password });

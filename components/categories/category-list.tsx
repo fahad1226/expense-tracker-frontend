@@ -1,26 +1,16 @@
 "use client";
 
-import type { ExpenseCategory } from "@/lib/expenses";
+import { CategoryGlyph } from "@/lib/category-icons";
 import { formatCurrency } from "@/lib/expenses";
 import { cn } from "@/lib/utils";
 import {
     ArrowUpDownIcon,
-    CarIcon,
     ChevronRightIcon,
-    CircleDollarSignIcon,
-    FilmIcon,
-    GraduationCapIcon,
     Grid3X3Icon,
-    HeartPulseIcon,
     ListIcon,
-    PlaneIcon,
     PlusIcon,
     SearchIcon,
-    ShoppingBagIcon,
     TagIcon,
-    TvIcon,
-    UtensilsCrossedIcon,
-    ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -29,25 +19,11 @@ import CategoryModal from "./category-modal";
 type ViewMode = "list" | "grid";
 type SortKey = "name" | "count" | "amount";
 
-const CATEGORY_ICONS: Record<
-    ExpenseCategory,
-    React.ComponentType<{ className?: string }>
-> = {
-    food: UtensilsCrossedIcon,
-    transport: CarIcon,
-    shopping: ShoppingBagIcon,
-    entertainment: FilmIcon,
-    bills: ZapIcon,
-    healthcare: HeartPulseIcon,
-    education: GraduationCapIcon,
-    travel: PlaneIcon,
-    other: CircleDollarSignIcon,
-};
-
 interface CategoryStats {
     id: number;
     name: string;
-    description: string;
+    description: string | null;
+    icon: string | null;
     expenses_count: number;
     expenses_sum_amount: number;
 }
@@ -243,8 +219,11 @@ function CategoryListRow({ category }: { category: CategoryStats }) {
                     href={`/expenses/list?category=${category.id}`}
                     className="flex items-center gap-3"
                 >
-                    <div className="flex size-11 items-center justify-center rounded-xl">
-                        <TvIcon className="size-5" />
+                    <div className="flex size-11 items-center justify-center rounded-xl text-gray-600">
+                        <CategoryGlyph
+                            iconId={category.icon}
+                            className="size-5"
+                        />
                     </div>
                     <span className="font-medium text-gray-900 group-hover:text-violet-600">
                         {category.name}
@@ -281,8 +260,11 @@ function CategoryGridCard({ category }: { category: CategoryStats }) {
             className="group block overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/50 transition-all hover:border-gray-200 hover:shadow-md"
         >
             <div className="flex items-start justify-between p-5">
-                <div className="flex size-12 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
-                    <TvIcon className="size-6" />
+                <div className="flex size-12 items-center justify-center rounded-xl text-gray-600 transition-transform group-hover:scale-105">
+                    <CategoryGlyph
+                        iconId={category.icon}
+                        className="size-6"
+                    />
                 </div>
                 <ChevronRightIcon className="size-4 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100" />
             </div>

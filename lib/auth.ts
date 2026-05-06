@@ -1,21 +1,22 @@
-import { apiClient } from "@/config/api.client";
-import { AUTH_TOKEN_KEY } from "@/config/api.server";
+import { apiClient, AUTH_TOKEN_KEY } from "@/config/api.client";
 import axios from "axios";
 import Cookies from "js-cookie";
 export const API_BASE_URL = "http://localhost:8000/api";
 
+const AUTH_COOKIE_ATTRS = {
+    path: "/",
+    sameSite: "lax" as const,
+};
+
 export function setAuthToken(token: string, maxAgeDays = 7): void {
-    // if (typeof document === "undefined") return;
-    // const maxAge = maxAgeDays * 24 * 60 * 60;
-    // document.cookie = `${AUTH_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-    Cookies.set(AUTH_TOKEN_KEY, token, { expires: maxAgeDays });
+    Cookies.set(AUTH_TOKEN_KEY, token, {
+        expires: maxAgeDays,
+        ...AUTH_COOKIE_ATTRS,
+    });
 }
 
 export function clearAuthToken(): void {
-    // if (typeof document === "undefined") return;
-    // document.cookie = AUTH_TOKEN_KEY + "=; path=/; max-age=0; SameSite=Lax";
-    Cookies.remove(AUTH_TOKEN_KEY);
-    // window.location.href = "/login";
+    Cookies.remove(AUTH_TOKEN_KEY, { path: AUTH_COOKIE_ATTRS.path });
 }
 
 export function getAuthToken(): string | undefined {
@@ -31,6 +32,7 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    currency: string;
 }
 
 export interface LoginResponse {
@@ -51,7 +53,14 @@ export async function loginApi(
             },
         },
     );
-    return res.data;
+    const u = res.data.user;
+    return {
+        ...res.data,
+        user: {
+            ...u,
+            currency: u.currency && u.currency.length === 3 ? u.currency : "BDT",
+        },
+    };
 }
 
 export async function logoutApi(): Promise<void> {
@@ -63,6 +72,10 @@ export async function logoutApi(): Promise<void> {
 }
 
 export async function getMeApi(): Promise<User> {
-    const res = await apiClient().get<User>("/auth/user");
-    return res.data;
+    const res = await apiClient().get<{ user: User }>("/auth/user");
+    const u = res.data.user;
+    return {
+        ...u,
+        currency: u.currency && u.currency.length === 3 ? u.currency : "BDT",
+    };
 }
