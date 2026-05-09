@@ -1,9 +1,9 @@
 "use client";
 
 import { easeLux } from "@/components/landing/scroll-reveal";
-import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ReceiptIcon } from "lucide-react";
+import Link from "next/link";
 
 function Navbar() {
     const reduceMotion = useReducedMotion();
@@ -21,10 +21,7 @@ function Navbar() {
         >
             <div className="mx-auto max-w-7xl px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between gap-4">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2.5"
-                    >
+                    <Link href="/" className="flex items-center gap-2.5">
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-violet-600 shadow-md shadow-teal-600/20">
                             <ReceiptIcon className="size-5 text-white" />
                         </div>

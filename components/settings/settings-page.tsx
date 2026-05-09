@@ -4,21 +4,26 @@ import { useAuth } from "@/context/auth-context";
 import {
     fetchSettings,
     patchSettings,
+    removeAvatarApi,
     updatePasswordApi,
+    uploadAvatarApi,
     type SettingsPayload,
 } from "@/lib/settings";
+import { UserAvatar } from "@/components/user/user-avatar";
 import { cn } from "@/lib/utils";
 import {
+    CameraIcon,
     GlobeIcon,
     LockIcon,
     MonitorIcon,
     MoonIcon,
     PaletteIcon,
     SunIcon,
+    Trash2Icon,
     UserIcon,
 } from "lucide-react";
 import type { ComponentType } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -33,6 +38,8 @@ export default function SettingsPage() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [savingPassword, setSavingPassword] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -95,6 +102,54 @@ export default function SettingsPage() {
     };
 
     const email = payload?.user.email ?? authUser?.email ?? "";
+    const avatarUrl = payload?.user.avatar_url ?? authUser?.avatar_url ?? null;
+    const displayName =
+        name.trim() ||
+        payload?.user.name ||
+        authUser?.name ||
+        "User";
+
+    const pickAvatarFile = () => {
+        avatarInputRef.current?.click();
+    };
+
+    const onAvatarSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || !payload) {
+            return;
+        }
+        setUploadingAvatar(true);
+        try {
+            const updated = await uploadAvatarApi(file);
+            setPayload(updated);
+            await refetchUser();
+            toast.success("Profile photo updated");
+        } catch {
+            toast.error("Could not upload photo. Try a JPG or PNG under 2 MB.");
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
+    const removeAvatar = async () => {
+        if (!avatarUrl) {
+            return;
+        }
+        setUploadingAvatar(true);
+        try {
+            const updated = await removeAvatarApi();
+            setPayload(updated);
+            await refetchUser();
+            toast.success("Profile photo removed");
+        } catch {
+            toast.error("Could not remove photo.");
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
 
     return (
         <div className="space-y-8">
@@ -162,11 +217,54 @@ export default function SettingsPage() {
                                     Account
                                 </h2>
                                 <p className="text-xs text-gray-500">
-                                    Name and email (email cannot be changed).
+                                    Profile photo, name and email (email
+                                    cannot be changed).
                                 </p>
                             </div>
                         </div>
                         <div className="space-y-4 p-6">
+                            <input
+                                ref={avatarInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="sr-only"
+                                onChange={(e) => void onAvatarSelected(e)}
+                            />
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                                <UserAvatar
+                                    name={displayName}
+                                    avatarUrl={avatarUrl}
+                                    size="lg"
+                                />
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={pickAvatarFile}
+                                        disabled={uploadingAvatar}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 disabled:opacity-60"
+                                    >
+                                        <CameraIcon className="size-4" />
+                                        {uploadingAvatar
+                                            ? "Uploading…"
+                                            : "Upload photo"}
+                                    </button>
+                                    {avatarUrl ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => void removeAvatar()}
+                                            disabled={uploadingAvatar}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
+                                        >
+                                            <Trash2Icon className="size-4" />
+                                            Remove photo
+                                        </button>
+                                    ) : null}
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                JPG, PNG, WebP, or GIF · max 2 MB · appears in
+                                the top bar next to your name.
+                            </p>
                             <div>
                                 <label
                                     htmlFor="settings-name"

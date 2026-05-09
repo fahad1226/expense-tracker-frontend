@@ -4,26 +4,21 @@ import {
     Dialog,
     DialogBackdrop,
     DialogPanel,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuItems,
     TransitionChild,
 } from "@headlessui/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { apiClient } from "@/config/api.client";
-import { clearAuthToken } from "@/lib/auth";
+import { UserAvatar } from "@/components/user/user-avatar";
+import { useAuth } from "@/context/auth-context";
 import clsx from "clsx";
 import {
-    ArrowLeftIcon,
     BarChart3Icon,
     BellIcon,
-    ChevronDownIcon,
     HelpCircleIcon,
     LayoutDashboardIcon,
+    LogOutIcon,
     MenuIcon,
     PiggyBankIcon,
     ReceiptIcon,
@@ -33,6 +28,7 @@ import {
     TagIcon,
     XIcon,
 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 
 const generalNav = [
@@ -63,16 +59,6 @@ const supportNav = [
     { name: "Help", href: "/help", icon: HelpCircleIcon },
 ];
 
-const teams = [
-    { id: 1, name: "Personal", initial: "P", color: "bg-teal-500" },
-    { id: 2, name: "Family", initial: "F", color: "bg-indigo-500" },
-];
-
-const userNavigation = [
-    { name: "Your profile", href: "#" },
-    { name: "Sign out", href: "#" },
-];
-
 function NavSection({
     title,
     items,
@@ -91,7 +77,7 @@ function NavSection({
     return (
         <div className="mb-6">
             <h3 className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                {title}
+                {title}!
             </h3>
             <ul className="space-y-0.5">
                 {items.map((item) => {
@@ -142,15 +128,14 @@ export default function ApplicationSidebar({
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+    const { user, isLoading, logout: authLogout } = useAuth();
+
     const sidebarWidth = sidebarCollapsed ? "lg:w-20" : "lg:w-64";
 
     const handleLogout = async () => {
         try {
-            const response = await apiClient().post("/auth/logout");
-            if (response.status === 200) {
-                clearAuthToken();
-                router.push("/login");
-            }
+            await authLogout();
+            router.push("/login");
         } catch (error) {
             console.error(error);
             toast.error("Failed to logout");
@@ -195,18 +180,33 @@ export default function ApplicationSidebar({
                             </TransitionChild>
 
                             <div className="relative flex grow flex-col overflow-y-auto bg-gray-50 px-4 pb-4">
-                                {/* Mobile sidebar content - same as desktop */}
-                                <div className="flex h-16 shrink-0 items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex size-9 items-center justify-center rounded-lg bg-violet-600 text-white">
-                                            <span className="text-lg font-bold">
-                                                E
-                                            </span>
-                                        </div>
-                                        <span className="text-lg font-semibold text-gray-900">
-                                            ExpenseTracker
+                                <div className="flex h-16 shrink-0 items-center border-b border-gray-200/70 pb-3">
+                                    <Link
+                                        href="/dashboard"
+                                        onClick={() => setSidebarOpen(false)}
+                                        className="group -mx-1 flex w-full items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-gray-100/90"
+                                    >
+                                        <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200/70">
+                                            <Image
+                                                src="/logo.png"
+                                                alt=""
+                                                width={40}
+                                                height={40}
+                                                className="size-7 object-contain"
+                                                aria-hidden
+                                            />
                                         </span>
-                                    </div>
+                                        <span className="flex min-w-0 flex-col justify-center leading-none">
+                                            <span className="truncate text-[15px] font-semibold tracking-tight">
+                                                <span className="text-violet-600">
+                                                    Expense
+                                                </span>{" "}
+                                                <span className="text-gray-900">
+                                                    Tracker
+                                                </span>
+                                            </span>
+                                        </span>
+                                    </Link>
                                 </div>
                                 <nav className="flex flex-1 flex-col pt-6">
                                     <NavSection
@@ -235,40 +235,64 @@ export default function ApplicationSidebar({
                     )}
                 >
                     <div className="flex grow flex-col overflow-y-auto px-4 pb-4">
-                        {/* Logo + Collapse */}
-                        <div className="flex h-16 shrink-0 items-center justify-between">
-                            <div className="flex min-w-0 items-center gap-2">
-                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
-                                    <span className="text-lg font-bold">E</span>
-                                </div>
+                        <div
+                            className={clsx(
+                                "flex shrink-0 border-b border-gray-200/70 pb-3",
+                                sidebarCollapsed
+                                    ? "justify-center pt-3"
+                                    : "items-center pt-2",
+                            )}
+                        >
+                            <Link
+                                href="/dashboard"
+                                title="Expense Tracker"
+                                className={clsx(
+                                    "rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50",
+                                    sidebarCollapsed
+                                        ? "flex size-11 items-center justify-center hover:bg-gray-100/90"
+                                        : "flex w-full items-center gap-3 px-2 py-1.5 hover:bg-gray-100/90",
+                                )}
+                            >
+                                <span
+                                    className={clsx(
+                                        "flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200/70",
+                                        sidebarCollapsed ? "size-9" : "size-10",
+                                    )}
+                                >
+                                    <Image
+                                        src="/logo.png"
+                                        alt={
+                                            sidebarCollapsed
+                                                ? "Expense Tracker"
+                                                : ""
+                                        }
+                                        width={40}
+                                        height={40}
+                                        className={clsx(
+                                            "object-contain",
+                                            sidebarCollapsed
+                                                ? "size-6"
+                                                : "size-7",
+                                        )}
+                                        aria-hidden={!sidebarCollapsed}
+                                    />
+                                </span>
                                 {!sidebarCollapsed && (
-                                    <span className="truncate text-lg font-semibold text-gray-900">
-                                        ExpenseTracker
+                                    <span className="flex min-w-0 flex-col justify-center leading-none">
+                                        <span className="truncate text-[15px] font-semibold tracking-tight">
+                                            <span className="text-violet-600">
+                                                Expense
+                                            </span>{" "}
+                                            <span className="text-gray-900">
+                                                Tracker
+                                            </span>
+                                        </span>
                                     </span>
                                 )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setSidebarCollapsed(!sidebarCollapsed)
-                                }
-                                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 hover:text-gray-900"
-                                aria-label={
-                                    sidebarCollapsed
-                                        ? "Expand sidebar"
-                                        : "Collapse sidebar"
-                                }
-                            >
-                                <ArrowLeftIcon
-                                    className={clsx(
-                                        "size-4 transition-transform",
-                                        sidebarCollapsed && "rotate-180",
-                                    )}
-                                />
-                            </button>
+                            </Link>
                         </div>
 
-                        <nav className="flex flex-1 flex-col pt-6">
+                        <nav className="flex flex-1 flex-col pt-5">
                             {!sidebarCollapsed ? (
                                 <>
                                     <NavSection
@@ -291,7 +315,14 @@ export default function ApplicationSidebar({
                                         ...toolsNav,
                                         ...supportNav,
                                     ].map((item) => {
-                                        const isActive = pathname === item.href;
+                                        const prefix =
+                                            "activeMatch" in item &&
+                                            typeof item.activeMatch === "string"
+                                                ? item.activeMatch
+                                                : null;
+                                        const isActive = prefix
+                                            ? pathname.startsWith(prefix)
+                                            : pathname === item.href;
                                         return (
                                             <Link
                                                 key={item.name}
@@ -321,7 +352,7 @@ export default function ApplicationSidebar({
                         sidebarCollapsed ? "lg:pl-20" : "lg:pl-64",
                     )}
                 >
-                    <div className="sticky top-0 z-40 flex h-16 items-center gap-x-4 border-b border-gray-200 bg-white px-4 sm:gap-x-6 sm:px-6">
+                    <div className="sticky top-0 z-40 flex h-16 items-center gap-x-3 border-b border-gray-200 bg-white px-4 sm:gap-x-4 sm:px-6">
                         <button
                             type="button"
                             onClick={() => setSidebarOpen(true)}
@@ -336,8 +367,8 @@ export default function ApplicationSidebar({
                             className="h-6 w-px bg-gray-200 lg:hidden"
                         />
 
-                        <div className="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6">
-                            <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-x-4 self-stretch lg:gap-x-6">
+                            <div className="flex min-w-0 shrink-0 items-center gap-2">
                                 <form
                                     action="#"
                                     method="GET"
@@ -351,82 +382,67 @@ export default function ApplicationSidebar({
                                         name="search"
                                         placeholder="Search"
                                         aria-label="Search"
-                                        className="w-56 rounded-lg border-0 bg-gray-100 py-2 pl-10 pr-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 sm:w-64"
+                                        className="w-44 rounded-xl border-0 bg-gray-100 py-2 pl-10 pr-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-violet-500/20 sm:w-56 lg:w-64"
                                     />
                                 </form>
-                                <kbd className="hidden shrink-0 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-medium text-gray-500 sm:block">
+                                <kbd className="hidden shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-medium text-gray-500 sm:block">
                                     ⌘F
                                 </kbd>
                             </div>
+
                             <div
                                 className="min-w-0 flex-1"
                                 aria-hidden="true"
                             />
-                            <div className="flex items-center gap-x-4 lg:gap-x-6">
+
+                            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                                 <button
                                     type="button"
-                                    className="-m-2.5 p-2.5 text-gray-500 hover:text-gray-700"
+                                    className="-m-2 rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                                 >
                                     <span className="sr-only">
                                         View notifications
                                     </span>
                                     <BellIcon
                                         aria-hidden="true"
-                                        className="size-6"
+                                        className="size-5"
                                     />
                                 </button>
 
                                 <div
                                     aria-hidden="true"
-                                    className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"
+                                    className="hidden h-8 w-px bg-gray-200 sm:block"
                                 />
 
-                                <Menu as="div" className="relative">
-                                    <MenuButton className="relative flex items-center">
-                                        <span className="absolute -inset-1.5" />
-                                        <span className="sr-only">
-                                            Open user menu
-                                        </span>
-                                        <div className="flex size-8 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-600 ring-2 ring-white">
-                                            U
-                                        </div>
-                                        <span className="hidden lg:flex lg:items-center">
-                                            <span
-                                                aria-hidden="true"
-                                                className="ml-4 text-sm font-semibold text-gray-900"
-                                            >
-                                                User
-                                            </span>
-                                            <ChevronDownIcon
-                                                aria-hidden="true"
-                                                className="ml-2 size-5 text-gray-400"
+                                {isLoading ? (
+                                    <div
+                                        className="size-9 shrink-0 animate-pulse rounded-full bg-gray-200"
+                                        aria-hidden
+                                    />
+                                ) : user ? (
+                                    <>
+                                        <div className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-gray-200/80 bg-gray-50/80 py-1 pl-1 pr-2 shadow-sm">
+                                            <UserAvatar
+                                                name={user.name}
+                                                avatarUrl={user.avatar_url}
+                                                size="md"
                                             />
-                                        </span>
-                                    </MenuButton>
-                                    <MenuItems
-                                        transition
-                                        className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-lg bg-white py-2 shadow-lg ring-1 ring-gray-200 transition data-closed:scale-95 data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
-                                    >
-                                        <MenuItem>
-                                            <Link
-                                                href={"/profile"}
-                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 data-focus:bg-gray-50 data-focus:outline-none"
-                                            >
-                                                Your profile
-                                            </Link>
-                                        </MenuItem>
-
-                                        <MenuItem>
-                                            <button
-                                                type="button"
-                                                onClick={handleLogout}
-                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 data-focus:bg-gray-50 data-focus:outline-none"
-                                            >
-                                                Sign out
-                                            </button>
-                                        </MenuItem>
-                                    </MenuItems>
-                                </Menu>
+                                            <span className="hidden max-w-[9rem] truncate text-sm font-semibold text-gray-900 md:block">
+                                                {user.name}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleLogout()}
+                                            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-violet-200 hover:bg-violet-50 hover:text-violet-900"
+                                        >
+                                            <LogOutIcon className="size-4 shrink-0 text-gray-500" />
+                                            <span className="hidden sm:inline">
+                                                Log out
+                                            </span>
+                                        </button>
+                                    </>
+                                ) : null}
                             </div>
                         </div>
                     </div>

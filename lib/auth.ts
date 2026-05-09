@@ -1,5 +1,5 @@
 import { apiClient, AUTH_TOKEN_KEY } from "@/config/api.client";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import Cookies from "js-cookie";
 export const API_BASE_URL = "http://localhost:8000/api";
 
@@ -33,11 +33,79 @@ export interface User {
     name: string;
     email: string;
     currency: string;
+    /** Absolute URL from the API when the user has uploaded a photo */
+    avatar_url?: string | null;
 }
 
 export interface LoginResponse {
     token: string;
     user: User;
+}
+
+function normalizeLoginResponse(data: LoginResponse): LoginResponse {
+    const u = data.user;
+    return {
+        ...data,
+        user: {
+            ...u,
+            currency:
+                u.currency && u.currency.length === 3 ? u.currency : "BDT",
+            avatar_url: u.avatar_url ?? null,
+        },
+    };
+}
+
+export function getAuthErrorMessage(error: unknown, fallback: string): string {
+    if (isAxiosError(error)) {
+        const d = error.response?.data as {
+            message?: string;
+            errors?: Record<string, string[]>;
+        };
+        if (d?.errors) {
+            const first = Object.values(d.errors).flat()[0];
+            if (first) return first;
+        }
+        if (typeof d?.message === "string") return d.message;
+    }
+    if (error instanceof Error) return error.message;
+    return fallback;
+}
+
+export interface RegisterPayload {
+    name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+}
+
+export async function registerApi(
+    payload: RegisterPayload,
+): Promise<LoginResponse> {
+    const res = await axios.post<LoginResponse>(
+        API_BASE_URL + "/auth/register",
+        payload,
+        {
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+        },
+    );
+    return normalizeLoginResponse(res.data);
+}
+
+export async function googleAuthApi(credential: string): Promise<LoginResponse> {
+    const res = await axios.post<LoginResponse>(
+        API_BASE_URL + "/auth/google",
+        { credential },
+        {
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+        },
+    );
+    return normalizeLoginResponse(res.data);
 }
 
 export async function loginApi(
@@ -53,14 +121,7 @@ export async function loginApi(
             },
         },
     );
-    const u = res.data.user;
-    return {
-        ...res.data,
-        user: {
-            ...u,
-            currency: u.currency && u.currency.length === 3 ? u.currency : "BDT",
-        },
-    };
+    return normalizeLoginResponse(res.data);
 }
 
 export async function logoutApi(): Promise<void> {
@@ -77,5 +138,6 @@ export async function getMeApi(): Promise<User> {
     return {
         ...u,
         currency: u.currency && u.currency.length === 3 ? u.currency : "BDT",
+        avatar_url: u.avatar_url ?? null,
     };
 }

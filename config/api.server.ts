@@ -1,6 +1,6 @@
 import { AUTH_TOKEN_KEY } from "@/config/api.client";
 import axios, { AxiosError, AxiosInstance } from "axios";
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export { AUTH_TOKEN_KEY };
 

@@ -1,5 +1,5 @@
 import { apiClient } from "@/config/api.client";
-import type { User } from "@/lib/auth";
+import { API_BASE_URL, getAuthToken, type User } from "@/lib/auth";
 
 export type CurrencyOption = {
     code: string;
@@ -15,6 +15,7 @@ function normalizeUser(u: User): User {
     return {
         ...u,
         currency: u.currency && u.currency.length === 3 ? u.currency : "BDT",
+        avatar_url: u.avatar_url ?? null,
     };
 }
 
@@ -46,4 +47,39 @@ export async function updatePasswordApi(payload: {
     password_confirmation: string;
 }): Promise<void> {
     await apiClient().put("/settings/password", payload);
+}
+
+export async function uploadAvatarApi(file: File): Promise<SettingsPayload> {
+    const token = getAuthToken();
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const res = await fetch(`${API_BASE_URL}/settings/avatar`, {
+        method: "POST",
+        headers: {
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+    });
+
+    if (!res.ok) {
+        throw new Error("Upload failed");
+    }
+
+    const data = (await res.json()) as SettingsPayload;
+    return {
+        user: normalizeUser(data.user),
+        currencies: data.currencies,
+    };
+}
+
+export async function removeAvatarApi(): Promise<SettingsPayload> {
+    const { data } = await apiClient().delete<SettingsPayload>(
+        "/settings/avatar",
+    );
+    return {
+        user: normalizeUser(data.user),
+        currencies: data.currencies,
+    };
 }

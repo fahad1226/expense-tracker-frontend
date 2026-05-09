@@ -1,14 +1,19 @@
 "use client";
 
-import { setAuthToken } from "@/lib/auth";
+import { GoogleIdentityButton } from "@/components/account/google-identity-button";
+import {
+    getAuthErrorMessage,
+    googleAuthApi,
+    loginApi,
+    setAuthToken,
+} from "@/lib/auth";
 import { useAuth } from "@/context/auth-context";
 import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { loginApi } from "@/lib/auth";
 
 export function LoginForm() {
     const { setUserFromLogin } = useAuth();
@@ -30,12 +35,29 @@ export function LoginForm() {
             toast.success("Welcome back!");
             router.push(redirect);
         },
-        onError: (error: { response?: { data?: { message?: string } } }) => {
-            const message =
-                error.response?.data?.message ?? "Invalid email or password";
-            toast.error(message);
+        onError: (error: unknown) => {
+            toast.error(
+                getAuthErrorMessage(error, "Invalid email or password"),
+            );
         },
     });
+
+    const googleMutation = useMutation({
+        mutationFn: googleAuthApi,
+        onSuccess: (data) => {
+            setAuthToken(data.token);
+            setUserFromLogin(data.user);
+            toast.success("Signed in with Google");
+            router.push(redirect);
+        },
+        onError: (error: unknown) => {
+            toast.error(
+                getAuthErrorMessage(error, "Google sign-in failed."),
+            );
+        },
+    });
+
+    const busy = loginMutation.isPending || googleMutation.isPending;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,147 +65,129 @@ export function LoginForm() {
     };
 
     return (
-        <div className="w-full max-w-[400px]">
-            <div className="mb-8">
-                <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-                    Welcome back
-                </h1>
-                <p className="mt-1.5 text-sm text-neutral-500">
-                    Continue with one of the following options
-                </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                    <label
-                        htmlFor="email"
-                        className="text-sm font-medium text-neutral-700"
-                    >
-                        Email
-                    </label>
-                    <input
-                        id="email"
-                        type="email"
-                        placeholder="Email Address"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                        disabled={loginMutation.isPending}
-                        className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3.5 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <label
-                            htmlFor="password"
-                            className="text-sm font-medium text-neutral-700"
-                        >
-                            Password
-                        </label>
-                        <Link
-                            href="/forgot-password"
-                            className="text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-700"
-                        >
-                            Forgot Password?
-                        </Link>
-                    </div>
-                    <div className="relative">
-                        <input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            autoComplete="current-password"
-                            disabled={loginMutation.isPending}
-                            className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3.5 pr-10 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-600"
-                            aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                            {showPassword ? (
-                                <EyeOff className="size-4" />
-                            ) : (
-                                <Eye className="size-4" />
-                            )}
-                        </button>
+        <div className="rounded-2xl border border-neutral-200/80 bg-white/80 p-1 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.15)] ring-1 ring-black/[0.03] backdrop-blur-sm sm:p-2">
+            <div className="rounded-xl bg-white px-6 py-8 sm:px-8">
+                <div className="mb-8 flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md shadow-violet-500/25">
+                        <LogIn className="size-5" aria-hidden />
+                    </span>
+                    <div>
+                        <h2 className="text-xl font-semibold tracking-tight text-neutral-900">
+                            Welcome back
+                        </h2>
+                        <p className="mt-1 text-sm text-neutral-500">
+                            Sign in with Google or your email.
+                        </p>
                     </div>
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={loginMutation.isPending}
-                    className="h-11 w-full rounded-lg bg-neutral-900 font-medium text-white shadow-sm transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                    {loginMutation.isPending ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <span
-                                className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-                                aria-hidden
-                            />
-                            Signing in...
-                        </span>
-                    ) : (
-                        "Sign in"
-                    )}
-                </button>
+                <GoogleIdentityButton
+                    variant="signin_with"
+                    disabled={busy}
+                    onCredential={(c) => googleMutation.mutate(c)}
+                    className="mb-6"
+                />
 
-                <div className="relative">
+                <div className="relative mb-6">
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-neutral-200" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                        <span className="bg-white px-2 text-neutral-500">
-                            or continue with
+                        <span className="bg-white px-3 font-medium text-neutral-400">
+                            or with email
                         </span>
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-200 bg-white font-medium text-neutral-700 shadow-sm transition-all hover:border-neutral-300 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400/20 focus:ring-offset-2"
-                >
-                    <svg
-                        className="size-5"
-                        viewBox="0 0 24 24"
-                        aria-hidden
-                    >
-                        <path
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            fill="#4285F4"
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <label
+                            htmlFor="email"
+                            className="text-sm font-medium text-neutral-700"
+                        >
+                            Email
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            placeholder="you@company.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                            disabled={busy}
+                            className="h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:opacity-60"
                         />
-                        <path
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            fill="#34A853"
-                        />
-                        <path
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                            fill="#FBBC05"
-                        />
-                        <path
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                            fill="#EA4335"
-                        />
-                    </svg>
-                    Continue with Google
-                </button>
-            </form>
+                    </div>
 
-            <p className="mt-6 text-center text-sm text-neutral-500">
-                Don&apos;t have an account?{" "}
-                <Link
-                    href="/signup"
-                    className="font-semibold text-neutral-900 transition-colors hover:text-neutral-700"
-                >
-                    Sign up
-                </Link>
-            </p>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                            <label
+                                htmlFor="password"
+                                className="text-sm font-medium text-neutral-700"
+                            >
+                                Password
+                            </label>
+                            <Link
+                                href="/forgot-password"
+                                className="text-xs font-medium text-violet-600 hover:text-violet-700"
+                            >
+                                Forgot?
+                            </Link>
+                        </div>
+                        <div className="relative">
+                            <input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                autoComplete="current-password"
+                                disabled={busy}
+                                className="h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 pr-11 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:opacity-60"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-600"
+                                aria-label={
+                                    showPassword
+                                        ? "Hide password"
+                                        : "Show password"
+                                }
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="size-4" />
+                                ) : (
+                                    <Eye className="size-4" />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={busy}
+                        className="group relative mt-2 flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 font-semibold text-white shadow-lg shadow-violet-500/25 transition hover:from-violet-500 hover:to-fuchsia-500 hover:shadow-violet-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-65"
+                    >
+                        <span className="relative z-10">
+                            {loginMutation.isPending ? "Signing in…" : "Sign in"}
+                        </span>
+                        <span className="absolute inset-0 bg-white/10 opacity-0 transition group-hover:opacity-100" />
+                    </button>
+                </form>
+
+                <p className="mt-6 text-center text-sm text-neutral-500">
+                    Don&apos;t have an account?{" "}
+                    <Link
+                        href="/signup"
+                        className="font-semibold text-neutral-900 underline-offset-4 hover:underline"
+                    >
+                        Sign up
+                    </Link>
+                </p>
+            </div>
         </div>
     );
 }
