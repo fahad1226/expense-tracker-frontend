@@ -1,6 +1,7 @@
 import { AuthPremiumShell } from "@/components/account/auth-premium-shell";
 import { LoginForm } from "@/components/account/login";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
     title: "ExpenseTracker — Sign in",
@@ -15,7 +16,9 @@ export default function LoginPage() {
             title="Your finances, distilled."
             description="See spending by category, set budgets, and export reports—all synced securely with your workspace."
         >
-            <LoginForm />
+            <Suspense fallback={null}>
+                <LoginForm />
+            </Suspense>
         </AuthPremiumShell>
     );
 }

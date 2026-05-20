@@ -1,5 +1,6 @@
-import { API_BASE_URL } from "@/lib/auth";
 import type { HelpCenterPayload } from "@/lib/help-content";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export type SupportContactPayload = {
     category: string;

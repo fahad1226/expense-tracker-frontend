@@ -1,5 +1,6 @@
 import { SignupForm } from "@/components/account/signup-form";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
     title: "ExpenseTracker — Sign up",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function SignupPage() {
-    return <SignupForm />;
+    return (
+        <Suspense fallback={null}>
+            <SignupForm />
+        </Suspense>
+    );
 }

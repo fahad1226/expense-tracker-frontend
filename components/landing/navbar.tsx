@@ -2,10 +2,15 @@
 
 import { easeLux } from "@/components/landing/scroll-reveal";
 import { motion, useReducedMotion } from "framer-motion";
-import { ReceiptIcon } from "lucide-react";
+import { LayoutDashboardIcon, ReceiptIcon } from "lucide-react";
 import Link from "next/link";
 
-function Navbar() {
+type NavbarProps = {
+    /** Set from the server via cookies so nav matches session without a flash */
+    isAuthenticated?: boolean;
+};
+
+function Navbar({ isAuthenticated = false }: NavbarProps) {
     const reduceMotion = useReducedMotion();
 
     return (
@@ -50,17 +55,26 @@ function Navbar() {
                         </Link>
                     </div>
                     <div className="flex items-center gap-3">
+                        {!isAuthenticated && (
+                            <Link
+                                href="/login"
+                                className="hidden text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 sm:inline"
+                            >
+                                Sign in
+                            </Link>
+                        )}
                         <Link
-                            href="/login"
-                            className="hidden text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 sm:inline"
+                            href={isAuthenticated ? "/dashboard" : "/signup"}
+                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-600/25 transition hover:shadow-lg hover:shadow-teal-600/35"
                         >
-                            Sign in
-                        </Link>
-                        <Link
-                            href="/signup"
-                            className="rounded-xl bg-gradient-to-r from-teal-600 to-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-600/25 transition hover:shadow-lg hover:shadow-teal-600/35"
-                        >
-                            Get started
+                            {isAuthenticated ? (
+                                <>
+                                    <LayoutDashboardIcon className="size-4 shrink-0 opacity-95" />
+                                    Dashboard
+                                </>
+                            ) : (
+                                "Get started"
+                            )}
                         </Link>
                     </div>
                 </div>

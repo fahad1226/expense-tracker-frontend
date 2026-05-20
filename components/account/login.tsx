@@ -1,13 +1,13 @@
 "use client";
 
 import { GoogleIdentityButton } from "@/components/account/google-identity-button";
+import { useAuth } from "@/context/auth-context";
 import {
     getAuthErrorMessage,
     googleAuthApi,
     loginApi,
     setAuthToken,
 } from "@/lib/auth";
-import { useAuth } from "@/context/auth-context";
 import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import Link from "next/link";
@@ -51,9 +51,7 @@ export function LoginForm() {
             router.push(redirect);
         },
         onError: (error: unknown) => {
-            toast.error(
-                getAuthErrorMessage(error, "Google sign-in failed."),
-            );
+            toast.error(getAuthErrorMessage(error, "Google sign-in failed."));
         },
     });
 
@@ -172,7 +170,9 @@ export function LoginForm() {
                         className="group relative mt-2 flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 font-semibold text-white shadow-lg shadow-violet-500/25 transition hover:from-violet-500 hover:to-fuchsia-500 hover:shadow-violet-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-65"
                     >
                         <span className="relative z-10">
-                            {loginMutation.isPending ? "Signing in…" : "Sign in"}
+                            {loginMutation.isPending
+                                ? "Signing in…"
+                                : "Sign in"}
                         </span>
                         <span className="absolute inset-0 bg-white/10 opacity-0 transition group-hover:opacity-100" />
                     </button>

@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const AUTH_TOKEN_KEY = "auth_token";
 
@@ -7,7 +7,7 @@ const protectedPaths = ["/dashboard", "/expenses"];
 
 function isProtectedPath(pathname: string): boolean {
     return protectedPaths.some(
-        (path) => pathname === path || pathname.startsWith(path + "/")
+        (path) => pathname === path || pathname.startsWith(path + "/"),
     );
 }
 
@@ -25,8 +25,8 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Redirect logged-in users away from login page
-    if (pathname === "/login" && token) {
+    // Redirect logged-in users away from sign-in / sign-up
+    if ((pathname === "/login" || pathname === "/signup") && token) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
@@ -34,5 +34,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/dashboard/:path*", "/expenses/:path*", "/login"],
+    matcher: ["/dashboard/:path*", "/expenses/:path*", "/login", "/signup"],
 };

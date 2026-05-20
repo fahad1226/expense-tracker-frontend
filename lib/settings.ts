@@ -1,5 +1,7 @@
 import { apiClient } from "@/config/api.client";
-import { API_BASE_URL, getAuthToken, type User } from "@/lib/auth";
+import { getAuthToken, type User } from "@/lib/auth";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export type CurrencyOption = {
     code: string;
@@ -75,9 +77,8 @@ export async function uploadAvatarApi(file: File): Promise<SettingsPayload> {
 }
 
 export async function removeAvatarApi(): Promise<SettingsPayload> {
-    const { data } = await apiClient().delete<SettingsPayload>(
-        "/settings/avatar",
-    );
+    const { data } =
+        await apiClient().delete<SettingsPayload>("/settings/avatar");
     return {
         user: normalizeUser(data.user),
         currencies: data.currencies,

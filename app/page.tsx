@@ -6,7 +6,9 @@ import Navbar from "@/components/landing/navbar";
 import ProductShowcase from "@/components/landing/product-showcase";
 import StatsBand from "@/components/landing/stats-band";
 import TrustScenarios from "@/components/landing/trust-scenarios";
+import { AUTH_TOKEN_KEY } from "@/config/api.client";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
     title: "ExpenseTracker - Take Control of Your Finances",
@@ -14,7 +16,10 @@ export const metadata: Metadata = {
         "See your dashboard and analytics before you sign up. Track expenses, understand trends, and spend with confidence.",
 };
 
-export default function Home() {
+export default async function Home() {
+    const cookieStore = await cookies();
+    const isAuthenticated = Boolean(cookieStore.get(AUTH_TOKEN_KEY)?.value);
+
     return (
         <div
             className="min-h-screen text-slate-900 antialiased selection:bg-teal-200/60 selection:text-teal-950"
@@ -23,7 +28,7 @@ export default function Home() {
                     "radial-gradient(ellipse 120% 70% at 50% -8%, rgba(45, 212, 191, 0.09), transparent 52%), radial-gradient(ellipse 60% 40% at 100% 40%, rgba(139, 92, 246, 0.06), transparent 45%), linear-gradient(180deg, #fafcfb 0%, #ffffff 38%, #f4f5f7 100%)",
             }}
         >
-            <Navbar />
+            <Navbar isAuthenticated={isAuthenticated} />
 
             <HeroSection />
 

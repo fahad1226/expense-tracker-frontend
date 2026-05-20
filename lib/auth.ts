@@ -1,7 +1,6 @@
 import { apiClient, AUTH_TOKEN_KEY } from "@/config/api.client";
-import axios, { isAxiosError } from "axios";
+import { isAxiosError } from "axios";
 import Cookies from "js-cookie";
-export const API_BASE_URL = "http://localhost:8000/api";
 
 const AUTH_COOKIE_ATTRS = {
     path: "/",
@@ -81,46 +80,30 @@ export interface RegisterPayload {
 export async function registerApi(
     payload: RegisterPayload,
 ): Promise<LoginResponse> {
-    const res = await axios.post<LoginResponse>(
-        API_BASE_URL + "/auth/register",
+    const res = await apiClient().post<LoginResponse>(
+        "/auth/register",
         payload,
-        {
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-        },
     );
     return normalizeLoginResponse(res.data);
 }
 
-export async function googleAuthApi(credential: string): Promise<LoginResponse> {
-    const res = await axios.post<LoginResponse>(
-        API_BASE_URL + "/auth/google",
-        { credential },
-        {
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-        },
-    );
+export async function googleAuthApi(
+    credential: string,
+): Promise<LoginResponse> {
+    const res = await apiClient().post<LoginResponse>("/auth/google", {
+        credential,
+    });
     return normalizeLoginResponse(res.data);
 }
 
 export async function loginApi(
     credentials: LoginCredentials,
 ): Promise<LoginResponse> {
-    const res = await axios.post<LoginResponse>(
-        API_BASE_URL + "/auth/login",
+    const res = await apiClient().post<LoginResponse>(
+        "/auth/login",
         credentials,
-        {
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-        },
     );
+
     return normalizeLoginResponse(res.data);
 }
 
