@@ -1,10 +1,15 @@
 "use client";
 
+import BudgetWarningDialog from "@/components/budgets/budget-warning-dialog";
 import { apiClient } from "@/config/api.client";
+import {
+    checkCategoryBudgetImpact,
+    type CategoryBudgetImpact,
+} from "@/lib/budgets";
 import { CategoryGlyph } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays, format } from "date-fns";
 import {
     ArrowLeftIcon,
     CalendarIcon,
@@ -44,6 +49,16 @@ export default function CreateExpenseForm({
         date: new Date(),
     }));
     const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [warningOpen, setWarningOpen] = useState(false);
+    const [budgetImpacts, setBudgetImpacts] = useState<CategoryBudgetImpact[]>(
+        [],
+    );
+    const [pendingExpense, setPendingExpense] = useState<{
+        amount: number;
+        note: string;
+        category_id: number;
+        date: Date;
+    } | null>(null);
 
     const amountNum = parseFloat(form.amount.replace(/[^0-9.]/g, "")) || 0;
     const isValid = amountNum > 0 && form.note.trim() && form.category_id;
@@ -76,20 +91,71 @@ export default function CreateExpenseForm({
         },
     });
 
+    const submitExpense = (expense: {
+        amount: number;
+        note: string;
+        category_id: number;
+        date: Date;
+    }) => {
+        createExpenseMutation(expense);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isValid || !form.category_id) return;
 
-        createExpenseMutation({
+        const expense = {
             amount: amountNum,
             note: form.note,
             category_id: form.category_id,
             date: form.date,
-        });
+        };
+
+        try {
+            const result = await checkCategoryBudgetImpact({
+                categoryId: form.category_id,
+                amount: amountNum,
+                date: format(form.date, "yyyy-MM-dd"),
+            });
+
+            if (result.impacts.length > 0) {
+                setBudgetImpacts(result.impacts);
+                setPendingExpense(expense);
+                setWarningOpen(true);
+                return;
+            }
+        } catch {
+            toast.error("Could not check budget limits.");
+            return;
+        }
+
+        submitExpense(expense);
+    };
+
+    const handleConfirmWarning = () => {
+        if (!pendingExpense) {
+            return;
+        }
+        submitExpense(pendingExpense);
+        setWarningOpen(false);
+        setPendingExpense(null);
+        setBudgetImpacts([]);
     };
 
     return (
         <div className="mx-auto max-w-2xl">
+            <BudgetWarningDialog
+                open={warningOpen}
+                impacts={budgetImpacts}
+                onConfirm={handleConfirmWarning}
+                onCancel={() => {
+                    setWarningOpen(false);
+                    setPendingExpense(null);
+                    setBudgetImpacts([]);
+                }}
+                confirming={isPending}
+            />
+
             {/* Header */}
             <div className="mb-8">
                 <Link
